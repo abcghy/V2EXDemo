@@ -2,6 +2,7 @@ package info.gaohuiyu.v2exdemo.data.api
 
 import android.arch.lifecycle.LiveData
 import android.arch.lifecycle.MutableLiveData
+import android.support.annotation.IntRange
 import android.util.Log
 import com.google.gson.Gson
 import info.gaohuiyu.v2exdemo.AppExecutors
@@ -77,17 +78,38 @@ class V2EXApi {
         return topicListLiveData
     }
 
-    fun getTopicDetail(topicId: Long, page: Int): LiveData<TopicDetail> {
-        val topicDetailLiveData = MutableLiveData<TopicDetail>()
+    fun getTopicDetailResponse(topicId: Long): LiveData<ApiResponse<TopicDetailResponse>> {
+        val topicDetailLiveData = MutableLiveData<ApiResponse<TopicDetailResponse>>()
         AppExecutors.networkIO().execute {
-            topicDetailLiveData.postValue(get(topicId, page))
+            val topicDetailResponse = get(topicId, 1)
+            topicDetailLiveData.postValue(ApiResponse.create(topicDetailResponse))
         }
         return topicDetailLiveData
     }
 
-    fun get(topicId: Long, page: Int = 1): TopicDetail {
+    fun getTopicComments(topicId: Long, @IntRange(from = 2, to = Long.MAX_VALUE) page: Int): LiveData<ApiResponse<CommentResponse>> {
+        val topicDetailLiveData = MutableLiveData<ApiResponse<CommentResponse>>()
+        AppExecutors.networkIO().execute {
+            val topicDetailResponse = get(topicId, page)
+            topicDetailLiveData.postValue(ApiResponse.create(topicDetailResponse.commentResponse))
+        }
+        return topicDetailLiveData
+    }
+
+    private fun get(topicId: Long, page: Int = 1): TopicDetailResponse {
         val url = "https://www.v2ex.com/t/$topicId?p=$page"
         val doc = Jsoup.connect(url).get()
+
+        val topicDetail = getTopicDetailByDoc(doc)
+
+        val subtitles = getSubtitlesByDoc(doc)
+
+        var commentResponse = getCommentResponseByDoc(doc)
+
+        return TopicDetailResponse(topicDetail, subtitles, commentResponse)
+    }
+
+    private fun getTopicDetailByDoc(doc: Document): TopicDetail {
         val node = doc.select("div#Main > div.box > div.header > a")[1].html()
         val title = doc.select("div#Main > div.box > div.header > h1")[0].html()
 
@@ -99,16 +121,16 @@ class V2EXApi {
         var publishTime: String? = null
         var clickCount: String? = null
         doc.select("#Main > div:nth-child(2) > div.header > small")[0].ownText().split("·")
-                .apply {
-                    this.map { it.trim() }
-                            .filter { it.isNotEmpty() }
-                            .forEachIndexed { index, s ->
-                                when (index) {
-                                    0 -> publishTime = s
-                                    1 -> clickCount = s
-                                }
-                            }
-                }
+            .apply {
+                this.map { it.trim() }
+                    .filter { it.isNotEmpty() }
+                    .forEachIndexed { index, s ->
+                        when (index) {
+                            0 -> publishTime = s
+                            1 -> clickCount = s
+                        }
+                    }
+            }
         val content = doc.select("#Main > div:nth-child(2) > div.cell > div.topic_content").run {
             return@run if (this.size > 0) {
                 this[0].html()
@@ -116,33 +138,41 @@ class V2EXApi {
                 null
             }
         }
-        val subtitles: MutableList<Subtitle> = ArrayList()
+
+        var replyCount: String? = null
+        var lastReplyTime: String? = null
+        doc.select("#Main > div:nth-child(4) > div:nth-child(1) > span")[0].text()
+            .apply {
+                split("|")
+                    .map { it.trim() }
+                    .mapIndexed { index, s ->
+                        when (index) {
+                            0 -> replyCount = s
+                            1 -> lastReplyTime = s
+                        }
+                    }
+            }
+
+        return TopicDetail(title, content, lastReplyTime, replyCount, node, publisher, publishTime, clickCount)
+    }
+
+    private fun getSubtitlesByDoc(doc: Document): List<Subtitle> {
+        var subtitles: MutableList<Subtitle> = ArrayList()
         doc.select("div.subtle").run {
             if (this.size > 0) {
                 this.forEach {
                     val subtitleContent = it.select(".topic_content")[0].html()
                     val subtitleTime = it.select("span")[0].text()
-                            .split("·")[1].trim()
+                        .split("·")[1].trim()
 
                     subtitles.add(Subtitle(subtitleContent, subtitleTime))
                 }
             }
         }
-//    val favouriteCount = doc.select("#Main > div.topic_buttons > div.fr.topic_stats")[0]
-//    println(favouriteCount)
-        var replyCount: String? = null
-        var lastReplyTime: String? = null
-        doc.select("#Main > div:nth-child(4) > div:nth-child(1) > span")[0].text()
-                .apply {
-                    split("|")
-                            .map { it.trim() }
-                            .mapIndexed { index, s ->
-                                when (index) {
-                                    0 -> replyCount = s
-                                    1 -> lastReplyTime = s
-                                }
-                            }
-                }
+        return subtitles
+    }
+
+    private fun getCommentResponseByDoc(doc: Document): CommentResponse {
         var comments: MutableList<Comment> = ArrayList()
         doc.getElementsByAttributeValueMatching("id", "r_(.*)").forEach {
             val commentContent = it.select("div.reply_content")[0].text()
@@ -159,12 +189,8 @@ class V2EXApi {
             val commenter = Member(commenterAvatar, commenterName)
             comments.add(Comment(commentContent, commenter, loveCount, commentTime))
         }
-
         val pages = getPages(doc)
-
-        val topicDetail = TopicDetail(title, content, lastReplyTime, replyCount, node, publisher, publishTime, clickCount, comments, subtitles, pages.first, pages.second)
-        Log.d("httpLog", Gson().toJson(topicDetail))
-        return topicDetail
+        return CommentResponse(comments, pages.first, pages.second)
     }
 
     fun getPages(doc: Document): Pair<Int, Int> {

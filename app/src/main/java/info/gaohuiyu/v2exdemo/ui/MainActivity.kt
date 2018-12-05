@@ -5,23 +5,23 @@ import android.arch.lifecycle.ViewModel
 import android.arch.lifecycle.ViewModelProvider
 import android.arch.lifecycle.ViewModelProviders
 import android.content.Context
+import android.graphics.Canvas
+import android.graphics.Paint
 import android.graphics.Rect
-import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
+import android.support.v7.app.AppCompatActivity
 import android.support.v7.util.DiffUtil
 import android.support.v7.widget.DividerItemDecoration
-import android.support.v7.widget.GridLayoutManager
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Adapter
 import android.widget.TextView
 import info.gaohuiyu.v2exdemo.R
 import info.gaohuiyu.v2exdemo.data.api.V2EXApi
 import info.gaohuiyu.v2exdemo.data.model.Topic
-import info.gaohuiyu.v2exdemo.data.model.TopicDetail
 import info.gaohuiyu.v2exdemo.data.repository.TopicRepository
 import info.gaohuiyu.v2exdemo.ui.detail.TopicDetailActivity
 import kotlinx.android.synthetic.main.activity_main.*
@@ -38,7 +38,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        mAdapter = MainAdapter(object: OnSelectListener {
+        mAdapter = MainAdapter(object : OnSelectListener {
             override fun onSelect(topic: Topic?) {
                 if (topic != null) {
                     TopicDetailActivity.openActivity(this@MainActivity, topicId = topic.id)
@@ -48,13 +48,11 @@ class MainActivity : AppCompatActivity() {
         })
         rv.adapter = mAdapter
 
-        rv.layoutManager = GridLayoutManager(this, 2)
-        rv.addItemDecoration(GridItemDecoration())
+        rv.layoutManager = LinearLayoutManager(this)
+        rv.addItemDecoration(LinearItemDecoration(this))
 
-        mViewModel = ViewModelProviders.of(this, object: ViewModelProvider.Factory {
+        mViewModel = ViewModelProviders.of(this, object : ViewModelProvider.Factory {
             override fun <T : ViewModel?> create(modelClass: Class<T>): T {
-//                if (modelClass.isAssignableFrom(MainViewModel::class.java)) {
-//                }
                 return MainViewModel(TopicRepository(V2EXApi())) as T
             }
 
@@ -79,21 +77,24 @@ class MainActivity : AppCompatActivity() {
     }
 }
 
-class GridItemDecoration: RecyclerView.ItemDecoration {
-    constructor() : super()
+class LinearItemDecoration: RecyclerView.ItemDecoration {
+    val dividerPaint: Paint
 
-    override fun getItemOffsets(outRect: Rect, view: View, parent: RecyclerView, state: RecyclerView.State) {
-        super.getItemOffsets(outRect, view, parent, state)
+    constructor(context: Context) : super() {
+        dividerPaint = Paint()
+        dividerPaint.isAntiAlias = true
+        dividerPaint.color = context.resources.getColor(R.color.tag_light)
+        dividerPaint.strokeWidth = context.dp2px(0.5f).toFloat()
+        dividerPaint.style = Paint.Style.STROKE
+    }
 
-        val position = parent.getChildAdapterPosition(view)
-        if (position < 2) {
-            outRect.top = parent.context.dp2px(16f)
+    override fun onDrawOver(c: Canvas, parent: RecyclerView, state: RecyclerView.State) {
+        val childCount = parent.childCount
+        for (i in 0 until childCount) {
+            val child = parent.getChildAt(i)
+            val bottom = child.bottom
+            c.drawLine(0f, bottom.toFloat(), parent.width.toFloat(), bottom.toFloat(), dividerPaint)
         }
-        outRect.bottom = parent.context.dp2px(16f)
-        if (position % 2 == 0) {
-            outRect.left = parent.context.dp2px(16f)
-        }
-        outRect.right = parent.context.dp2px(16f)
     }
 }
 
@@ -101,7 +102,7 @@ interface OnSelectListener {
     fun onSelect(topic: Topic?)
 }
 
-class MainAdapter(val onSelectListener: OnSelectListener): RecyclerView.Adapter<MainViewHolder>() {
+class MainAdapter(val onSelectListener: OnSelectListener) : RecyclerView.Adapter<MainViewHolder>() {
 
     private var topics: List<Topic>? = null
 
@@ -110,7 +111,7 @@ class MainAdapter(val onSelectListener: OnSelectListener): RecyclerView.Adapter<
             this.topics = topics
             notifyItemRangeInserted(0, topics.size)
         } else {
-            val diffResult = DiffUtil.calculateDiff(object: DiffUtil.Callback() {
+            val diffResult = DiffUtil.calculateDiff(object : DiffUtil.Callback() {
                 override fun getOldListSize(): Int {
                     return this@MainAdapter.topics!!.size
                 }
@@ -149,12 +150,13 @@ class MainAdapter(val onSelectListener: OnSelectListener): RecyclerView.Adapter<
     }
 }
 
-class MainViewHolder : RecyclerView.ViewHolder{
+class MainViewHolder : RecyclerView.ViewHolder {
 
     private var tvTitle: TextView? = null
     private var tvTime: TextView? = null
     private var tvPublisherName: TextView? = null
     private var tvCommentCount: TextView? = null
+    private var tvNodeName: TextView? = null
     var topic: Topic? = null
 
     constructor(parent: ViewGroup) : super(LayoutInflater.from(parent.context)
@@ -163,6 +165,7 @@ class MainViewHolder : RecyclerView.ViewHolder{
         tvTime = itemView.findViewById(R.id.tvTime)
         tvPublisherName = itemView.findViewById(R.id.tvPublisherName)
         tvCommentCount = itemView.findViewById(R.id.tvCommentCount)
+        tvNodeName = itemView.findViewById(R.id.tvNodeName)
     }
 
     fun bindTo(topic: Topic) {
@@ -172,5 +175,6 @@ class MainViewHolder : RecyclerView.ViewHolder{
         tvTime?.text = topic.lastReplyTime
         tvPublisherName?.text = topic.publisher?.name
         tvCommentCount?.text = topic.replyCount.toString()
+        tvNodeName?.text = topic.node?.name
     }
 }

@@ -76,17 +76,12 @@ class TopicDetailActivity : AppCompatActivity(), OnRefreshListener, OnLoadMoreLi
     }
 
     private fun subscribeToUI(viewModel: TopicViewModel) {
-        viewModel.topicDetailLiveData.observe(this, Observer {
+        viewModel.topicLiveData.observe(this, Observer {
+
             if (it != null) {
-                if (it.currentPage < it.totalPage) {
-                    srl.setEnableLoadMore(true)
-                    srl.finishRefresh()
-                    srl.finishLoadMore()
-                } else {
-                    srl.finishRefresh()
-                    srl.finishLoadMore()
-                    srl.setEnableLoadMore(false)
-                }
+                srl.finishRefresh()
+                srl.finishLoadMore()
+
                 mAdapter.setData(it)
             }
         })
@@ -101,26 +96,14 @@ class TopicDetailAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
         val COMMENT = 2
     }
 
-    private var datas: MutableList<Any>? = null
+    private var datas: List<Any>? = null
 
-    fun transform(topicDetail: TopicDetail): MutableList<Any> {
-        val list = ArrayList<Any>()
-        list.add(topicDetail)
-        if (!topicDetail.subtitles.isNullOrEmpty()) {
-            list.addAll(topicDetail.subtitles)
-        }
-        if (!topicDetail.comments.isNullOrEmpty()) {
-            list.addAll(topicDetail.comments)
-        }
-        return list
-    }
-
-    fun setData(topicDetail: TopicDetail) {
+    fun setData(list: List<Any>) {
         if (datas == null) {
-            datas = transform(topicDetail)
+            datas = list
             notifyItemRangeInserted(0, datas?.size!!)
         } else {
-            val newDatas = transform(topicDetail)
+            val newDatas = list
             val diffResult = DiffUtil.calculateDiff(object: DiffUtil.Callback() {
                 override fun getOldListSize(): Int {
                     return this@TopicDetailAdapter.datas!!.size
@@ -197,7 +180,10 @@ class HeaderViewHolder : RecyclerView.ViewHolder {
     private var tvTitle: TextView? = null
     private var tvContent: TextView? = null
 
-    constructor(parent: ViewGroup) : super(LayoutInflater.from(parent.context).inflate(R.layout.item_topic_detail_header, parent, false)) {
+    constructor(parent: ViewGroup) : super(
+        LayoutInflater.from(parent.context)
+            .inflate(R.layout.item_topic_detail_header, parent, false)
+    ) {
         tvTitle = itemView.findViewById(R.id.tvTitle)
         tvContent = itemView.findViewById(R.id.tvContent)
     }
