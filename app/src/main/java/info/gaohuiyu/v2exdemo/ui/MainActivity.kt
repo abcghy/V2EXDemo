@@ -38,6 +38,8 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        supportActionBar?.title = "热门"
+
         mAdapter = MainAdapter(object : OnSelectListener {
             override fun onSelect(topic: Topic?) {
                 if (topic != null) {

@@ -12,6 +12,7 @@ import android.support.v7.util.DiffUtil
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
 import android.view.LayoutInflater
+import android.view.MenuItem
 import android.view.ViewGroup
 import android.widget.TextView
 import com.scwang.smartrefresh.layout.api.RefreshLayout
@@ -40,6 +41,9 @@ class TopicDetailActivity : AppCompatActivity(), OnRefreshListener, OnLoadMoreLi
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_topic_detail)
+
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        supportActionBar?.title = ""
 
         mAdapter = TopicDetailAdapter()
         rv.adapter = mAdapter
@@ -85,6 +89,15 @@ class TopicDetailActivity : AppCompatActivity(), OnRefreshListener, OnLoadMoreLi
                 mAdapter.setData(it)
             }
         })
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        when (item.itemId) {
+            android.R.id.home -> {
+                onBackPressed()
+            }
+        }
+        return super.onOptionsItemSelected(item)
     }
 }
 
@@ -177,20 +190,32 @@ class TopicDetailAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
 class HeaderViewHolder : RecyclerView.ViewHolder {
 
+    private var tvNode: TextView? = null
     private var tvTitle: TextView? = null
     private var tvContent: TextView? = null
+    private var tvPublisherName: TextView? = null
+    private var tvPublishTime: TextView? = null
+    private var tvClickCount: TextView? = null
 
     constructor(parent: ViewGroup) : super(
         LayoutInflater.from(parent.context)
             .inflate(R.layout.item_topic_detail_header, parent, false)
     ) {
+        tvNode = itemView.findViewById(R.id.tvNode)
         tvTitle = itemView.findViewById(R.id.tvTitle)
         tvContent = itemView.findViewById(R.id.tvContent)
+        tvPublisherName = itemView.findViewById(R.id.tvPublisherName)
+        tvPublishTime = itemView.findViewById(R.id.tvPublishTime)
+        tvClickCount = itemView.findViewById(R.id.tvClickCount)
     }
 
     fun bindTo(topicDetail: TopicDetail) {
+        tvNode?.text = topicDetail.node
         tvTitle?.text = topicDetail.title
         tvContent?.text = topicDetail.content
+        tvPublisherName?.text = topicDetail.publisher?.name
+        tvPublishTime?.text = topicDetail.publishTime
+        tvClickCount?.text = topicDetail.clickCount
     }
 }
 

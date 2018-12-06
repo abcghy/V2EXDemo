@@ -1,11 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="colorPrimary">#008577</color>
-    <color name="colorPrimaryDark">#00574B</color>
+    <color name="colorPrimary">@color/white</color>
+    <color name="colorPrimaryDark">@color/white</color>
     <color name="colorAccent">#D81B60</color>
+    
+    <!--<color name="textColorPrimary">@color/TextMain</color>-->
+    <!--<color name="textColorSecondary">@color/TextMain</color>-->
 
     <color name="TextMain">#778087</color>
+    <color name="TextGrey">#b5b5b5</color>
     <color name="white">#FFFFFF</color>
     <color name="tag_light">#f5f5f5</color>
     <color name="Info">#d9d9d9</color>
+    <color name="TextBlack">#333344</color>
 </resources>

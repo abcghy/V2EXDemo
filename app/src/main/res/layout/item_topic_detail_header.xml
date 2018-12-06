@@ -1,28 +1,81 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:layout_marginTop="8dp"
-    android:layout_marginLeft="8dp"
-    android:layout_marginRight="8dp"
-    android:background="#EFEFEF">
+    android:background="@color/white"
+    android:orientation="vertical">
+
+    <TextView
+        android:id="@+id/tvNode"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="16dp"
+        android:textColor="@color/TextGrey"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        tools:text="Apple TV" />
 
     <TextView
         android:id="@+id/tvTitle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:padding="8dp"/>
+        android:layout_marginLeft="16dp"
+        android:layout_marginTop="12dp"
+        android:layout_marginRight="16dp"
+        android:textColor="@color/TextBlack"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:lineSpacingExtra="4dp"
+        tools:text="apple tv 4k 体验还是不错的。体验还是不错的。体验还是不错的。" />
 
-    <!--<ImageView-->
-        <!--android:id="@+id/ivAvatar"-->
-        <!--android:layout_width="wrap_content"-->
-        <!--android:layout_height="wrap_content" />-->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="16dp"
+        android:layout_marginTop="8dp">
+
+        <TextView
+            android:id="@+id/tvPublisherName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/TextMain"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            tools:text="razios" />
+
+        <TextView
+            android:id="@+id/tvPublishTime"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="12dp"
+            android:textColor="@color/TextGrey"
+            android:textSize="12sp"
+            tools:text="2小时51分钟前" />
+
+        <TextView
+            android:id="@+id/tvClickCount"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="12dp"
+            android:textColor="@color/TextGrey"
+            android:textSize="12sp"
+            tools:text="512次点击" />
+
+    </LinearLayout>
 
     <TextView
         android:id="@+id/tvContent"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:padding="8dp"/>
+        android:layout_margin="16dp"
+        android:lineSpacingExtra="4dp"
+        android:textColor="@color/TextBlack"
+        android:textSize="14sp"
+        tools:text="之前想看 4k 入了 shield tv，性能真的强劲，youtube 4k 也能看而且流畅。但是对比 sony 9000e 的画质怎么看怎么差距大，黯淡，死灰完全不如 sony 鲜活。虽然能点亮 HDR 但是却对高光控制不好，刺眼。一度让我怀疑 4k 是否也只是噱头，只不过分辨率更高而已。苦于电视处理速度不行 4k 毕竟卡顿，一度放弃折腾 4k。
+今天试了下 apple tv，装上 infuse，虽然可能比起专业碟机不一定好，但流畅播放 NAS 4K 原盘，还有海报墙以及在线搜索字幕，那个体验简直泪流满面。另外 airpaly 也的确舒服
+苹果还是那个苹果，瘦死的骆驼依然比马大啊。。。满意
+
+各位还有其他高端玩法可以分享下" />
 
 </LinearLayout>
