@@ -6,24 +6,44 @@ import android.arch.lifecycle.ViewModelProvider
 import android.arch.lifecycle.ViewModelProviders
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Matrix
+import android.graphics.Paint
+import android.graphics.drawable.BitmapDrawable
+import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.util.DiffUtil
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
+import android.text.Html
+import android.text.method.LinkMovementMethod
 import android.view.LayoutInflater
 import android.view.MenuItem
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.TextView
+import android.widget.Toast
+import com.bumptech.glide.Glide
+import com.bumptech.glide.load.resource.bitmap.CenterCrop
+import com.bumptech.glide.load.resource.bitmap.RoundedCorners
+import com.bumptech.glide.request.RequestOptions
+import com.bumptech.glide.request.target.SimpleTarget
+import com.bumptech.glide.request.transition.Transition
 import com.scwang.smartrefresh.layout.api.RefreshLayout
 import com.scwang.smartrefresh.layout.listener.OnLoadMoreListener
 import com.scwang.smartrefresh.layout.listener.OnRefreshListener
 import info.gaohuiyu.v2exdemo.R
 import info.gaohuiyu.v2exdemo.data.api.V2EXApi
 import info.gaohuiyu.v2exdemo.data.model.Comment
+import info.gaohuiyu.v2exdemo.data.model.CommentHeader
 import info.gaohuiyu.v2exdemo.data.model.Subtitle
 import info.gaohuiyu.v2exdemo.data.model.TopicDetail
 import info.gaohuiyu.v2exdemo.data.repository.TopicRepository
+import info.gaohuiyu.v2exdemo.ui.dp2px
+import info.gaohuiyu.v2exdemo.widget.ImageGetter
+import info.gaohuiyu.v2exdemo.widget.RichTextView
 import kotlinx.android.synthetic.main.activity_topic_detail.*
 
 class TopicDetailActivity : AppCompatActivity(), OnRefreshListener, OnLoadMoreListener {
@@ -37,6 +57,7 @@ class TopicDetailActivity : AppCompatActivity(), OnRefreshListener, OnLoadMoreLi
 
     private lateinit var mAdapter: TopicDetailAdapter
     private lateinit var mViewModel: TopicViewModel
+    private lateinit var itemDecoration: TopicDetailItemDecoration
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -44,9 +65,13 @@ class TopicDetailActivity : AppCompatActivity(), OnRefreshListener, OnLoadMoreLi
 
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         supportActionBar?.title = ""
+        supportActionBar?.elevation = 0f
 
         mAdapter = TopicDetailAdapter()
         rv.adapter = mAdapter
+
+        itemDecoration = TopicDetailItemDecoration(this)
+        rv.addItemDecoration(itemDecoration)
 
         rv.layoutManager = LinearLayoutManager(this)
 
@@ -86,9 +111,22 @@ class TopicDetailActivity : AppCompatActivity(), OnRefreshListener, OnLoadMoreLi
                 srl.finishRefresh()
                 srl.finishLoadMore()
 
+                itemDecoration.subtitleCount = getSubtitleCount(it)
                 mAdapter.setData(it)
             }
         })
+
+        viewModel.isMore.observe(this, Observer {
+            if (it != null) {
+                srl.setEnableLoadMore(it)
+            }
+        })
+    }
+
+    private fun getSubtitleCount(list: List<Any>): Int {
+        return list.count {
+            it is Subtitle
+        }
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
@@ -101,12 +139,63 @@ class TopicDetailActivity : AppCompatActivity(), OnRefreshListener, OnLoadMoreLi
     }
 }
 
+class TopicDetailItemDecoration: RecyclerView.ItemDecoration {
+    val dividerPaint: Paint
+    val commentPaint: Paint
+    var subtitleCount: Int
+
+    constructor(context: Context, subtitleCount: Int = 0) : super() {
+        this.subtitleCount = subtitleCount
+
+        dividerPaint = Paint()
+        dividerPaint.isAntiAlias = true
+        dividerPaint.color = context.resources.getColor(R.color.Lina)
+        dividerPaint.strokeWidth = context.dp2px(1f).toFloat()
+        dividerPaint.style = Paint.Style.STROKE
+
+        commentPaint = Paint()
+        commentPaint.isAntiAlias = true
+        commentPaint.color = context.resources.getColor(R.color.Line)
+        commentPaint.strokeWidth = context.dp2px(1f).toFloat()
+        commentPaint.style = Paint.Style.STROKE
+    }
+
+    override fun onDrawOver(c: Canvas, parent: RecyclerView, state: RecyclerView.State) {
+        val childCount = parent.childCount
+
+        for (i in 0 until childCount) {
+            val child = parent.getChildAt(i)
+            val position = parent.getChildAdapterPosition(child)
+            when {
+                position < subtitleCount -> {
+                    val bottom = child.bottom
+                    c.drawLine(0f, bottom.toFloat(), parent.width.toFloat(), bottom.toFloat(), dividerPaint)
+                }
+                position == subtitleCount -> {
+                    // nothing
+                }
+                position == subtitleCount + 1 -> {
+                    val bottom = child.bottom
+                    c.drawLine(parent.context.dp2px(16f).toFloat(), bottom.toFloat(),
+                        parent.width.toFloat(), bottom.toFloat(), commentPaint)
+                }
+                else -> {
+                    val bottom = child.bottom
+                    c.drawLine(parent.context.dp2px(68f).toFloat(), bottom.toFloat(),
+                        parent.width.toFloat(), bottom.toFloat(), commentPaint)
+                }
+            }
+        }
+    }
+}
+
 class TopicDetailAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     companion object {
         val HEADER = 0
         val SUBTITLE = 1
-        val COMMENT = 2
+        val COMMENT_HEADER = 2
+        val COMMENT = 3
     }
 
     private var datas: List<Any>? = null
@@ -151,6 +240,9 @@ class TopicDetailAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
             SUBTITLE -> {
                 SubtitleViewHolder(parent)
             }
+            COMMENT_HEADER -> {
+                CommentHeaderViewHolder(parent)
+            }
             COMMENT -> {
                 CommentViewHolder(parent)
             }
@@ -172,6 +264,9 @@ class TopicDetailAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
             is SubtitleViewHolder -> {
                 holder.bindTo(datas?.get(holder.adapterPosition) as Subtitle)
             }
+            is CommentHeaderViewHolder -> {
+                holder.bindTo(datas?.get(holder.adapterPosition) as CommentHeader)
+            }
             is CommentViewHolder -> {
                 holder.bindTo(datas?.get(holder.adapterPosition) as Comment)
             }
@@ -182,8 +277,9 @@ class TopicDetailAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
         return when (datas?.get(position)) {
             is TopicDetail -> HEADER
             is Subtitle -> SUBTITLE
+            is CommentHeader -> COMMENT_HEADER
             is Comment -> COMMENT
-            else -> HEADER
+            else -> COMMENT_HEADER
         }
     }
 }
@@ -192,7 +288,7 @@ class HeaderViewHolder : RecyclerView.ViewHolder {
 
     private var tvNode: TextView? = null
     private var tvTitle: TextView? = null
-    private var tvContent: TextView? = null
+    private var tvContent: RichTextView? = null
     private var tvPublisherName: TextView? = null
     private var tvPublishTime: TextView? = null
     private var tvClickCount: TextView? = null
@@ -207,12 +303,18 @@ class HeaderViewHolder : RecyclerView.ViewHolder {
         tvPublisherName = itemView.findViewById(R.id.tvPublisherName)
         tvPublishTime = itemView.findViewById(R.id.tvPublishTime)
         tvClickCount = itemView.findViewById(R.id.tvClickCount)
+
+        tvContent?.setOnImageClickListener(object : RichTextView.ImageClickListener {
+            override fun onImageClick(url: String) {
+                Toast.makeText(tvContent?.context, url, Toast.LENGTH_SHORT).show()
+            }
+        })
     }
 
     fun bindTo(topicDetail: TopicDetail) {
         tvNode?.text = topicDetail.node
         tvTitle?.text = topicDetail.title
-        tvContent?.text = topicDetail.content
+        tvContent?.setHtml(topicDetail.content)
         tvPublisherName?.text = topicDetail.publisher?.name
         tvPublishTime?.text = topicDetail.publishTime
         tvClickCount?.text = topicDetail.clickCount
@@ -220,31 +322,64 @@ class HeaderViewHolder : RecyclerView.ViewHolder {
 }
 
 class SubtitleViewHolder : RecyclerView.ViewHolder {
+    private var tvOrder: TextView? = null
     private var tvDate: TextView? = null
     private var tvContent: TextView? = null
 
     constructor(parent: ViewGroup) : super(LayoutInflater.from(parent.context).inflate(R.layout.item_topic_subtitle, parent, false)) {
+        tvOrder = itemView.findViewById(R.id.tvOrder)
         tvDate = itemView.findViewById(R.id.tvDate)
         tvContent = itemView.findViewById(R.id.tvContent)
     }
 
     fun bindTo(subtitle: Subtitle) {
+        tvOrder?.text = "第${adapterPosition}条附言"
         tvDate?.text = subtitle.time
         tvContent?.text = subtitle.content
     }
 }
 
-class CommentViewHolder : RecyclerView.ViewHolder {
-    private var tvName: TextView? = null
-    private var tvContent: TextView? = null
+class CommentHeaderViewHolder: RecyclerView.ViewHolder {
+    private var tvCommentCount: TextView? = null
+    private var ivSort: ImageView? = null
 
-    constructor(parent: ViewGroup) : super(LayoutInflater.from(parent.context).inflate(R.layout.item_topic_comment, parent, false)) {
+    constructor(parent: ViewGroup) : super(LayoutInflater.from(parent.context).inflate(R.layout.item_topic_comment_header, parent, false)) {
+        tvCommentCount = itemView.findViewById(R.id.tvCommentCount)
+        ivSort = itemView.findViewById(R.id.ivSort)
+    }
+
+    fun bindTo(commentHeader: CommentHeader) {
+        tvCommentCount?.text = "回复(${commentHeader.replyCount})"
+    }
+}
+
+class CommentViewHolder : RecyclerView.ViewHolder {
+    private var ivAvatar: ImageView? = null
+    private var tvName: TextView? = null
+    private var tvReply: TextView? = null
+    private var tvOrder: TextView? = null
+    private var tvDate: TextView? = null
+    private var tvContent: RichTextView? = null
+
+    constructor(parent: ViewGroup) : super(LayoutInflater.from(parent.context)
+            .inflate(R.layout.item_topic_comment, parent, false)) {
+        ivAvatar = itemView.findViewById(R.id.ivAvatar)
         tvName = itemView.findViewById(R.id.tvName)
         tvContent = itemView.findViewById(R.id.tvContent)
+        tvReply = itemView.findViewById(R.id.tvReply)
+        tvOrder = itemView.findViewById(R.id.tvOrder)
+        tvDate = itemView.findViewById(R.id.tvDate)
     }
 
     fun bindTo(comment: Comment) {
+        Glide.with(itemView.context)
+            .load(comment.commenter.avatar)
+            .apply(RequestOptions().transforms(CenterCrop(), RoundedCorners(itemView.context.dp2px(4f))))
+            .into(ivAvatar!!)
+        tvOrder?.text = comment.order
         tvName?.text = comment.commenter.name
-        tvContent?.text = comment.content
+        tvContent?.setHtml(comment.content)
+
+        tvDate?.text = comment.time
     }
 }

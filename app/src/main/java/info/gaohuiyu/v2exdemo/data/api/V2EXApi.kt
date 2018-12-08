@@ -62,7 +62,7 @@ class V2EXApi {
                 }
 
                 val member: Member = memberA.let {
-                    val memberName = it.attr("href")
+                    val memberName = it.attr("href").replace("/member/", "").trim()
                     val memberAvatar = it.select("img").attr("src")
                     Member(memberAvatar, memberName)
                 }
@@ -91,14 +91,18 @@ class V2EXApi {
         val topicDetailLiveData = MutableLiveData<ApiResponse<CommentResponse>>()
         AppExecutors.networkIO().execute {
             val topicDetailResponse = get(topicId, page)
-            topicDetailLiveData.postValue(ApiResponse.create(topicDetailResponse.commentResponse))
+            topicDetailLiveData.postValue(ApiResponse.create(topicDetailResponse?.commentResponse))
         }
         return topicDetailLiveData
     }
 
-    private fun get(topicId: Long, page: Int = 1): TopicDetailResponse {
+    private fun get(topicId: Long, page: Int = 1): TopicDetailResponse? {
         val url = "https://www.v2ex.com/t/$topicId?p=$page"
         val doc = Jsoup.connect(url).get()
+
+        if (doc.select(".topic_content").size == 0) {
+            return null
+        }
 
         val topicDetail = getTopicDetailByDoc(doc)
 
@@ -106,7 +110,11 @@ class V2EXApi {
 
         var commentResponse = getCommentResponseByDoc(doc)
 
-        return TopicDetailResponse(topicDetail, subtitles, commentResponse)
+        val topicDetailResponse = TopicDetailResponse(topicDetail, subtitles, commentResponse)
+
+        Log.d("httpLog", Gson().toJson(topicDetailResponse))
+
+        return topicDetailResponse
     }
 
     private fun getTopicDetailByDoc(doc: Document): TopicDetail {
@@ -147,7 +155,7 @@ class V2EXApi {
                     .map { it.trim() }
                     .mapIndexed { index, s ->
                         when (index) {
-                            0 -> replyCount = s
+                            0 -> replyCount = s.replace("回复", "").trim()
                             1 -> lastReplyTime = s
                         }
                     }
@@ -175,10 +183,11 @@ class V2EXApi {
     private fun getCommentResponseByDoc(doc: Document): CommentResponse {
         var comments: MutableList<Comment> = ArrayList()
         doc.getElementsByAttributeValueMatching("id", "r_(.*)").forEach {
-            val commentContent = it.select("div.reply_content")[0].text()
-            val commenterAvatar = it.select("img.avatar")[0].attr("src")
+            val commentContent = it.select("div.reply_content")[0].html()
+            val commenterAvatar = "https:" + it.select("img.avatar")[0].attr("src")
             val commenterName = it.select("tr > td:nth-child(3) > strong > a")[0].html()
             val commentTime = it.select("span.ago")[0].html()
+            val commentOrder = it.select("span.no")[0].html()
             val loveCount = it.select("tr > td:nth-child(3) > span.small.fade").run {
                 return@run if (this.size > 0) {
                     this[0].html()
@@ -187,7 +196,7 @@ class V2EXApi {
                 }
             }
             val commenter = Member(commenterAvatar, commenterName)
-            comments.add(Comment(commentContent, commenter, loveCount, commentTime))
+            comments.add(Comment(commentContent, commenter, loveCount, commentTime, commentOrder))
         }
         val pages = getPages(doc)
         return CommentResponse(comments, pages.first, pages.second)

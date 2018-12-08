@@ -2,22 +2,43 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:background="@color/white"
     android:orientation="vertical"
-    android:layout_marginTop="8dp"
-    android:layout_marginLeft="8dp"
-    android:layout_marginRight="8dp"
-    android:background="#EFEFEF">
+    android:padding="16dp">
 
-    <TextView
-        android:id="@+id/tvDate"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:padding="8dp"/>
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <TextView
+            android:id="@+id/tvOrder"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            tools:text="第1条附言"
+            android:textSize="12sp"
+            android:textColor="@color/TextGrey"/>
+
+        <TextView
+            android:id="@+id/tvDate"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            tools:text="3天前"
+            android:textSize="12sp"
+            android:textColor="@color/TextGrey"
+            android:layout_marginLeft="12dp"/>
+
+    </LinearLayout>
 
     <TextView
         android:id="@+id/tvContent"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:padding="8dp"/>
+        android:layout_marginTop="16dp"
+        android:textColor="@color/TextBlack"
+        android:textSize="14sp"
+        android:lineSpacingExtra="4sp"
+        tools:text="感谢各位大佬，都发了铜币表示感谢！
+有时间我会整理一下我平时日常生活使用Apple tv 4k的指南，到时候附上链接"/>
 
 </LinearLayout>

@@ -6,7 +6,10 @@ sealed class ApiResponse<T> {
             return ApiErrorResponse(error.message ?: "Unknown Error")
         }
 
-        fun <T> create(body: T): ApiSuccessResponse<T> {
+        fun <T> create(body: T?): ApiResponse<T> {
+            if (body == null) {
+                return ApiEmptyResponse()
+            }
             return ApiSuccessResponse(body)
         }
     }

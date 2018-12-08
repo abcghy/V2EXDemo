@@ -86,7 +86,7 @@ class LinearItemDecoration: RecyclerView.ItemDecoration {
         dividerPaint = Paint()
         dividerPaint.isAntiAlias = true
         dividerPaint.color = context.resources.getColor(R.color.tag_light)
-        dividerPaint.strokeWidth = context.dp2px(0.5f).toFloat()
+        dividerPaint.strokeWidth = context.dp2px(1f).toFloat()
         dividerPaint.style = Paint.Style.STROKE
     }
 
