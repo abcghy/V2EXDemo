@@ -25,7 +25,7 @@ data class TopicDetailResponse(
     val subtitles: List<Subtitle>,
     val commentResponse: CommentResponse
 ) {
-    fun toList(): List<Any> {
+    fun toList(): MutableList<Any> {
         val list = ArrayList<Any>()
         list.add(topicDetail)
         list.addAll(subtitles)

@@ -7,18 +7,16 @@ import android.arch.lifecycle.ViewModelProviders
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Paint
-import android.graphics.Rect
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.util.DiffUtil
-import android.support.v7.widget.DividerItemDecoration
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
-import android.util.Log
 import android.view.LayoutInflater
-import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import com.scwang.smartrefresh.layout.api.RefreshLayout
+import com.scwang.smartrefresh.layout.listener.OnRefreshListener
 import info.gaohuiyu.v2exdemo.R
 import info.gaohuiyu.v2exdemo.data.api.V2EXApi
 import info.gaohuiyu.v2exdemo.data.model.Topic
@@ -28,7 +26,7 @@ import kotlinx.android.synthetic.main.activity_main.*
 
 fun Context.dp2px(dp: Float): Int = (resources.displayMetrics.density * dp + 0.5f).toInt()
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), OnRefreshListener {
 
     private lateinit var mAdapter: MainAdapter
 
@@ -57,17 +55,26 @@ class MainActivity : AppCompatActivity() {
             override fun <T : ViewModel?> create(modelClass: Class<T>): T {
                 return MainViewModel(TopicRepository(V2EXApi())) as T
             }
-
         }).get(MainViewModel::class.java)
 
+        srl.setEnableLoadMore(false)
+        srl.setOnRefreshListener(this)
+
         subscribeUI(mViewModel)
-        fetchData()
+
+        srl.autoRefresh()
+    }
+
+    override fun onRefresh(refreshLayout: RefreshLayout) {
+        mViewModel.refresh()
     }
 
     private fun subscribeUI(viewModel: MainViewModel) {
         viewModel.topics.observe(this, Observer {
             if (it != null) {
                 mAdapter.setList(it)
+                srl.finishRefresh()
+                srl.finishLoadMore()
             } else {
 
             }
@@ -75,7 +82,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun fetchData() {
-        mViewModel.loadFirstPage()
+        mViewModel.refresh()
     }
 }
 

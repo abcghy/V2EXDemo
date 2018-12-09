@@ -16,6 +16,7 @@ import android.text.style.ImageSpan
 import android.util.AttributeSet
 import android.util.Log
 import android.view.View
+import android.view.ViewTreeObserver
 import android.widget.TextView
 import com.bumptech.glide.Glide
 import com.bumptech.glide.request.target.SimpleTarget
@@ -32,8 +33,8 @@ class RichTextView: TextView {
         movementMethod = LinkMovementMethod.getInstance()
     }
 
-    fun setHtml(htmlSource: String?) {
-        val html = Html.fromHtml(htmlSource, ImageGetter(context, this), null)
+    fun setHtml(htmlSource: String?, width: Int) {
+        val html = Html.fromHtml(htmlSource, ImageGetter(context, this@RichTextView, width), null)
         setImageClickable(html as SpannableStringBuilder)
         text = html
     }
@@ -76,14 +77,17 @@ class RichTextView: TextView {
 class ImageGetter: Html.ImageGetter {
 
     val context: Context
-    val textView: TextView
-    val screenWidth: Float
+    val textView: RichTextView
+    val textViewWidth: Float
+//    val screenWidth: Float
 
-    constructor(context: Context, textView: TextView) {
+    constructor(context: Context, textView: RichTextView, width: Int) {
         this.context = context
         this.textView = textView
         // todo 修改成tv宽度
-        this.screenWidth = context.resources.displayMetrics.widthPixels.toFloat()
+        this.textViewWidth = width.toFloat()
+//        this.screenWidth = context.resources.displayMetrics.widthPixels.toFloat()
+//        Log.d("test", "width: ${this.textView.width}")
     }
 
     override fun getDrawable(source: String?): Drawable {
@@ -94,7 +98,7 @@ class ImageGetter: Html.ImageGetter {
                 .load(source)
                 .into(object: SimpleTarget<Bitmap>() {
                     override fun onResourceReady(resource: Bitmap, transition: Transition<in Bitmap>?) {
-                        val scale = screenWidth / resource.width
+                        val scale = textViewWidth / resource.width
 
                         val matrix = Matrix()
                         matrix.postScale(scale, scale)

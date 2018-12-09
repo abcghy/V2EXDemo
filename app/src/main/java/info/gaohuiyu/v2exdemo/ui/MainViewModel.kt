@@ -11,7 +11,7 @@ class MainViewModel(val topicRepository: TopicRepository): ViewModel() {
     val topics : LiveData<List<Topic>>
         get() = _topics
 
-    fun loadFirstPage() {
+    fun refresh() {
         val apiSource = topicRepository.getHotTopics()
         _topics.addSource(apiSource) {
             _topics.removeSource(apiSource)

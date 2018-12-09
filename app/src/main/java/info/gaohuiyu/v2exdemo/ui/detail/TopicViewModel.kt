@@ -13,8 +13,8 @@ class TopicViewModel(val topicRepository: TopicRepository, val topicId: Long) : 
 
     private var currentPage = 1
 
-    private var _topicLiveData = MediatorLiveData<List<Any>>()
-    val topicLiveData: LiveData<List<Any>>
+    private var _topicLiveData = MediatorLiveData<MutableList<Any>>()
+    val topicLiveData: LiveData<MutableList<Any>>
         get() = _topicLiveData
 
     private var _isMore = MutableLiveData<Boolean>()
@@ -48,14 +48,23 @@ class TopicViewModel(val topicRepository: TopicRepository, val topicId: Long) : 
     }
 
     fun loadMore() {
-//        currentPage++
-//        val apiSource = topicRepository.getTopicDetail(topicId, currentPage)
-//        _topicDetailLiveData.addSource(apiSource) {
-//            _topicDetailLiveData.removeSource(apiSource)
-//            _topicDetailLiveData.value?.currentPage = it?.currentPage!!
-//            _topicDetailLiveData.value?.totalPage = it.totalPage
-//            _topicDetailLiveData.value?.commentResponse?.addAll(it.commentResponse!!)
-//            _topicDetailLiveData.value = _topicDetailLiveData.value
-//        }
+        currentPage++
+        val apiSource = topicRepository.getTopicDetailComments(topicId, currentPage)
+        _topicLiveData.addSource(apiSource) {
+            _topicLiveData.removeSource(apiSource)
+
+            if (it != null) {
+                when (it) {
+                    is ApiSuccessResponse -> {
+                        _topicLiveData.value = _topicLiveData.value?.apply {
+                            addAll(it.body.comments)
+                        }
+                        _isMore.value = it.body.run {
+                            this.totalPage != this.currentPage
+                        }
+                    }
+                }
+            }
+        }
     }
 }

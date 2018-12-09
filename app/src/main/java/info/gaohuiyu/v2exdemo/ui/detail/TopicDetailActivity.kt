@@ -19,9 +19,11 @@ import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
 import android.text.Html
 import android.text.method.LinkMovementMethod
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.MenuItem
 import android.view.ViewGroup
+import android.view.ViewTreeObserver
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
@@ -314,7 +316,9 @@ class HeaderViewHolder : RecyclerView.ViewHolder {
     fun bindTo(topicDetail: TopicDetail) {
         tvNode?.text = topicDetail.node
         tvTitle?.text = topicDetail.title
-        tvContent?.setHtml(topicDetail.content)
+        tvContent?.setHtml(topicDetail.content, itemView.context.let {
+            return@let it.resources.displayMetrics.widthPixels - it.dp2px(32f)
+        })
         tvPublisherName?.text = topicDetail.publisher?.name
         tvPublishTime?.text = topicDetail.publishTime
         tvClickCount?.text = topicDetail.clickCount
@@ -378,7 +382,9 @@ class CommentViewHolder : RecyclerView.ViewHolder {
             .into(ivAvatar!!)
         tvOrder?.text = comment.order
         tvName?.text = comment.commenter.name
-        tvContent?.setHtml(comment.content)
+        tvContent?.setHtml(comment.content, itemView.context.let {
+            return@let it.resources.displayMetrics.widthPixels - it.dp2px(84f)
+        })
 
         tvDate?.text = comment.time
     }
