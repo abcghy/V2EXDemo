@@ -30,7 +30,7 @@
 
     </LinearLayout>
 
-    <TextView
+    <info.gaohuiyu.v2exdemo.widget.RichTextView
         android:id="@+id/tvContent"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

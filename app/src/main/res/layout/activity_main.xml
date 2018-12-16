@@ -3,12 +3,26 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     tools:context=".ui.MainActivity">
 
     <com.scwang.smartrefresh.layout.SmartRefreshLayout
         android:id="@+id/srl"
         android:layout_width="match_parent"
         android:layout_height="match_parent">
+
+        <com.scwang.smartrefresh.layout.header.ClassicsHeader
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:srlEnableLastTime="false"
+            app:srlAccentColor="@color/TextGrey"
+            app:srlPrimaryColor="@color/Lina"
+            app:srlTextSizeTitle="12sp"
+            app:srlDrawableArrow="@drawable/ic_arrow_refresh_down"
+            app:srlDrawableSize="8dp"
+            app:srlDrawableMarginRight="8dp">
+
+        </com.scwang.smartrefresh.layout.header.ClassicsHeader>
 
         <android.support.v7.widget.RecyclerView
             android:id="@+id/rv"
