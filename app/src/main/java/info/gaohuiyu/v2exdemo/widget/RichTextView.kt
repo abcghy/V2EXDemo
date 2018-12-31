@@ -10,13 +10,12 @@ import android.text.Html
 import android.text.SpannableStringBuilder
 import android.text.Spanned
 import android.text.method.LinkMovementMethod
-import android.text.method.MovementMethod
 import android.text.style.ClickableSpan
 import android.text.style.ImageSpan
+import android.text.style.URLSpan
 import android.util.AttributeSet
 import android.util.Log
 import android.view.View
-import android.view.ViewTreeObserver
 import android.widget.TextView
 import com.bumptech.glide.Glide
 import com.bumptech.glide.request.target.SimpleTarget
@@ -36,16 +35,17 @@ class RichTextView: TextView {
     fun setHtml(htmlSource: String?, width: Int) {
         val html = Html.fromHtml(htmlSource, ImageGetter(context, this@RichTextView, width), null)
         setImageClickable(html as SpannableStringBuilder)
+        interceptV2exUrl(html as SpannableStringBuilder)
         text = html
     }
 
     private var imageSpans: Array<ImageSpan>? = null
     private var imageUrls: Array<String>? = null
 
-    private var imageClickListener: ImageClickListener? = null
+    private var richTextClickListener: RichTextClickListener? = null
 
-    fun setOnImageClickListener(imageClickListener: ImageClickListener) {
-        this.imageClickListener = imageClickListener
+    fun setOnRichTextClickListener(richTextClickListener: RichTextClickListener) {
+        this.richTextClickListener = richTextClickListener
     }
 
     fun setImageClickable(spannableStringBuilder: SpannableStringBuilder) {
@@ -62,15 +62,40 @@ class RichTextView: TextView {
 
             spannableStringBuilder.setSpan(object: ClickableSpan() {
                 override fun onClick(widget: View) {
-                    Log.d("test", "${i}")
-                    imageClickListener?.onImageClick(imageUrls!![i])
+                    Log.d("test", "${i} ${imageUrls!![i]}")
+                    richTextClickListener?.onImageClick(imageUrls!![i])
                 }
             }, start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
         }
     }
 
-    interface ImageClickListener {
+    fun interceptV2exUrl(spannableStringBuilder: SpannableStringBuilder) {
+        val urlSpans = spannableStringBuilder.getSpans(0, spannableStringBuilder.length, URLSpan::class.java)
+        val urls = Array(urlSpans!!.size) {
+//            Log.d("theUrl", "urlSpans.get(it).url: " + urlSpans[it].url)
+            urlSpans[it].url
+        }
+
+        for (i in 0 until urlSpans.size) {
+            val urlSpan = urlSpans[i]
+
+            val start = spannableStringBuilder.getSpanStart(urlSpan)
+            val end = spannableStringBuilder.getSpanEnd(urlSpan)
+
+            Log.d("test", "start: $start, end: $end, url: ${urls[i]}")
+            spannableStringBuilder.removeSpan(urlSpan)
+            spannableStringBuilder.setSpan(object : ClickableSpan() {
+                override fun onClick(widget: View) {
+                    Log.d("test", "${i}")
+                    richTextClickListener?.onUrlClick(urls[i])
+                }
+            }, start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        }
+    }
+
+    interface RichTextClickListener {
         fun onImageClick(url: String)
+        fun onUrlClick(url: String)
     }
 }
 
@@ -98,7 +123,11 @@ class ImageGetter: Html.ImageGetter {
                 .load(source)
                 .into(object: SimpleTarget<Bitmap>() {
                     override fun onResourceReady(resource: Bitmap, transition: Transition<in Bitmap>?) {
-                        val scale = textViewWidth / resource.width
+                        val scale: Float = if (resource.width < textViewWidth) {
+                            context.resources.displayMetrics.density
+                        } else {
+                            textViewWidth / resource.width
+                        }
 
                         val matrix = Matrix()
                         matrix.postScale(scale, scale)

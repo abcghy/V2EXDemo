@@ -4,6 +4,7 @@ import android.arch.lifecycle.Observer
 import android.arch.lifecycle.ViewModel
 import android.arch.lifecycle.ViewModelProvider
 import android.arch.lifecycle.ViewModelProviders
+import android.arch.persistence.room.Room
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Paint
@@ -19,6 +20,7 @@ import com.scwang.smartrefresh.layout.api.RefreshLayout
 import com.scwang.smartrefresh.layout.listener.OnRefreshListener
 import info.gaohuiyu.v2exdemo.R
 import info.gaohuiyu.v2exdemo.data.api.V2EXApi
+import info.gaohuiyu.v2exdemo.data.db.AppDatabase
 import info.gaohuiyu.v2exdemo.data.model.Topic
 import info.gaohuiyu.v2exdemo.data.repository.TopicRepository
 import info.gaohuiyu.v2exdemo.ui.detail.TopicDetailActivity
@@ -53,7 +55,9 @@ class MainActivity : AppCompatActivity(), OnRefreshListener {
 
         mViewModel = ViewModelProviders.of(this, object : ViewModelProvider.Factory {
             override fun <T : ViewModel?> create(modelClass: Class<T>): T {
-                return MainViewModel(TopicRepository(V2EXApi())) as T
+                val db = Room.databaseBuilder(this@MainActivity, AppDatabase::class.java, "V2ex.db")
+                    .build()
+                return MainViewModel(TopicRepository(V2EXApi(), db)) as T
             }
         }).get(MainViewModel::class.java)
 
@@ -62,7 +66,12 @@ class MainActivity : AppCompatActivity(), OnRefreshListener {
 
         subscribeUI(mViewModel)
 
+        initData()
         srl.autoRefresh()
+    }
+
+    fun initData() {
+        mViewModel.getLastData()
     }
 
     override fun onRefresh(refreshLayout: RefreshLayout) {
@@ -130,11 +139,11 @@ class MainAdapter(val onSelectListener: OnSelectListener) : RecyclerView.Adapter
                 }
 
                 override fun areItemsTheSame(oldPosition: Int, newPosition: Int): Boolean {
-                    return this@MainAdapter.topics!![oldPosition] == topics[newPosition]
+                    return this@MainAdapter.topics!![oldPosition].id == topics[newPosition].id
                 }
 
                 override fun areContentsTheSame(oldPosition: Int, newPosition: Int): Boolean {
-                    return this@MainAdapter.topics!![oldPosition].id == topics[newPosition].id
+                    return this@MainAdapter.topics!![oldPosition] == topics[newPosition]
                 }
             })
             this.topics = topics

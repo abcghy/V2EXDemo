@@ -4,26 +4,20 @@ import android.arch.lifecycle.Observer
 import android.arch.lifecycle.ViewModel
 import android.arch.lifecycle.ViewModelProvider
 import android.arch.lifecycle.ViewModelProviders
+import android.arch.persistence.room.Room
 import android.content.Context
 import android.content.Intent
-import android.graphics.Bitmap
 import android.graphics.Canvas
-import android.graphics.Matrix
 import android.graphics.Paint
-import android.graphics.drawable.BitmapDrawable
-import android.graphics.drawable.Drawable
+import android.net.Uri
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.util.DiffUtil
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
-import android.text.Html
-import android.text.method.LinkMovementMethod
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.MenuItem
 import android.view.ViewGroup
-import android.view.ViewTreeObserver
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
@@ -31,20 +25,21 @@ import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.bitmap.CenterCrop
 import com.bumptech.glide.load.resource.bitmap.RoundedCorners
 import com.bumptech.glide.request.RequestOptions
-import com.bumptech.glide.request.target.SimpleTarget
-import com.bumptech.glide.request.transition.Transition
 import com.scwang.smartrefresh.layout.api.RefreshLayout
 import com.scwang.smartrefresh.layout.listener.OnLoadMoreListener
 import com.scwang.smartrefresh.layout.listener.OnRefreshListener
 import info.gaohuiyu.v2exdemo.R
 import info.gaohuiyu.v2exdemo.data.api.V2EXApi
+import info.gaohuiyu.v2exdemo.data.config.baseUrl
+import info.gaohuiyu.v2exdemo.data.config.pageSuffix
+import info.gaohuiyu.v2exdemo.data.db.AppDatabase
 import info.gaohuiyu.v2exdemo.data.model.Comment
 import info.gaohuiyu.v2exdemo.data.model.CommentHeader
 import info.gaohuiyu.v2exdemo.data.model.Subtitle
 import info.gaohuiyu.v2exdemo.data.model.TopicDetail
 import info.gaohuiyu.v2exdemo.data.repository.TopicRepository
 import info.gaohuiyu.v2exdemo.ui.dp2px
-import info.gaohuiyu.v2exdemo.widget.ImageGetter
+import info.gaohuiyu.v2exdemo.util.getValueByRegex
 import info.gaohuiyu.v2exdemo.widget.RichTextView
 import kotlinx.android.synthetic.main.activity_topic_detail.*
 
@@ -88,7 +83,9 @@ class TopicDetailActivity : AppCompatActivity(), OnRefreshListener, OnLoadMoreLi
         }
         mViewModel = ViewModelProviders.of(this, object: ViewModelProvider.Factory {
             override fun <T : ViewModel?> create(modelClass: Class<T>): T {
-                return TopicViewModel(TopicRepository(V2EXApi()), topicId) as T
+                val db = Room.databaseBuilder(this@TopicDetailActivity, AppDatabase::class.java, "V2ex.db")
+                    .build()
+                return TopicViewModel(TopicRepository(V2EXApi(), db), topicId) as T
             }
 
         }).get(TopicViewModel::class.java)
@@ -306,7 +303,19 @@ class HeaderViewHolder : RecyclerView.ViewHolder {
         tvPublishTime = itemView.findViewById(R.id.tvPublishTime)
         tvClickCount = itemView.findViewById(R.id.tvClickCount)
 
-        tvContent?.setOnImageClickListener(object : RichTextView.ImageClickListener {
+        tvContent?.setOnRichTextClickListener(object : RichTextView.RichTextClickListener {
+            override fun onUrlClick(url: String) {
+                if (url.startsWith(baseUrl + pageSuffix)) {
+                    val topicId = getValueByRegex(url, "/t/(\\d*)").run {
+                        this.toLong()
+                    }
+                    TopicDetailActivity.openActivity(itemView.context, topicId)
+                    return
+                }
+                val uri = Uri.parse(url)
+                itemView.context.startActivity(Intent(Intent.ACTION_VIEW, uri))
+            }
+
             override fun onImageClick(url: String) {
                 Toast.makeText(tvContent?.context, url, Toast.LENGTH_SHORT).show()
             }
@@ -373,6 +382,24 @@ class CommentViewHolder : RecyclerView.ViewHolder {
         tvReply = itemView.findViewById(R.id.tvReply)
         tvOrder = itemView.findViewById(R.id.tvOrder)
         tvDate = itemView.findViewById(R.id.tvDate)
+
+        tvContent?.setOnRichTextClickListener(object : RichTextView.RichTextClickListener {
+            override fun onUrlClick(url: String) {
+                if (url.startsWith(baseUrl + pageSuffix)) {
+                    val topicId = getValueByRegex(url, "/t/(\\d*)").run {
+                        this.toLong()
+                    }
+                    TopicDetailActivity.openActivity(itemView.context, topicId)
+                    return
+                }
+                val uri = Uri.parse(url)
+                itemView.context.startActivity(Intent(Intent.ACTION_VIEW, uri))
+            }
+
+            override fun onImageClick(url: String) {
+                Toast.makeText(tvContent?.context, url, Toast.LENGTH_SHORT).show()
+            }
+        })
     }
 
     fun bindTo(comment: Comment) {

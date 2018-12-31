@@ -15,8 +15,8 @@ class V2EXApi {
         val topicListLiveData = MutableLiveData<List<Topic>>()
         AppExecutors.networkIO().execute {
             val url = "https://www.v2ex.com/?tab=hot"
-
-            val doc = Jsoup.connect(url).get()
+            val request = ApiRequest(url)
+            val doc = Jsoup.connect(request.url).get()
 
             val cellItems = doc.select("#Main > div.box > div.cell.item")
 
@@ -44,7 +44,7 @@ class V2EXApi {
                         null
                     }
                 }
-                val lastReplyMember = Member(null, lastReplyName)
+                val lastReplyMember = Member(lastReplyName!!, null)
 
                 val replyCount = tr.select("a.count_livid").text().run {
                     if (this.isNullOrEmpty()) {
@@ -64,15 +64,17 @@ class V2EXApi {
                 val member: Member = memberA.let {
                     val memberName = it.attr("href").replace("/member/", "").trim()
                     val memberAvatar = it.select("img").attr("src")
-                    Member(memberAvatar, memberName)
+                    Member(memberName, memberAvatar)
                 }
 
                 val nodeA = tr.select("a.node")
                 val node = Node(nodeA.html())
 
-                return@MutableList Topic(title, topicId, member, node, lastReplyTime, lastReplyMember, replyCount)
+                return@MutableList Topic(topicId, title, member, node, lastReplyTime, lastReplyMember, replyCount)
             }
-            Log.d("httpLog", Gson().toJson(topics))
+
+            logRequestAndResponse(request, topics)
+
             topicListLiveData.postValue(topics)
         }
         return topicListLiveData
@@ -98,7 +100,8 @@ class V2EXApi {
 
     private fun get(topicId: Long, page: Int = 1): TopicDetailResponse? {
         val url = "https://www.v2ex.com/t/$topicId?p=$page"
-        val doc = Jsoup.connect(url).get()
+        val request = ApiRequest(url)
+        val doc = Jsoup.connect(request.url).get()
 
         if (doc.select(".topic_content").size == 0) {
             return null
@@ -112,7 +115,7 @@ class V2EXApi {
 
         val topicDetailResponse = TopicDetailResponse(topicDetail, subtitles, commentResponse)
 
-        Log.d("httpLog", Gson().toJson(topicDetailResponse))
+        logRequestAndResponse(request, topicDetailResponse)
 
         return topicDetailResponse
     }
@@ -124,7 +127,7 @@ class V2EXApi {
         val publisherAvatar = doc.select("#Main > div:nth-child(2) > div.header > div.fr > a > img.avatar")[0].attr("src")
         val publisherName = doc.select("#Main > div:nth-child(2) > div.header > small > a")[0].html()
 
-        val publisher = Member(publisherAvatar, publisherName)
+        val publisher = Member(publisherName, publisherAvatar)
 
         var publishTime: String? = null
         var clickCount: String? = null
@@ -195,7 +198,7 @@ class V2EXApi {
                     null
                 }
             }
-            val commenter = Member(commenterAvatar, commenterName)
+            val commenter = Member(commenterName, commenterAvatar)
             comments.add(Comment(commentContent, commenter, loveCount, commentTime, commentOrder))
         }
         val pages = getPages(doc)
@@ -221,5 +224,13 @@ class V2EXApi {
             return@run _totalPage
         }
         return Pair(currentPage, totalPage)
+    }
+
+    val tag: String = "httpLog"
+    val gson: Gson = Gson()
+
+    private fun logRequestAndResponse(request: ApiRequest, response: Any) {
+        Log.d(tag, gson.toJson(request))
+        Log.d(tag, gson.toJson(response))
     }
 }
