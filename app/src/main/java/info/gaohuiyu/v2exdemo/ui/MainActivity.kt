@@ -132,9 +132,6 @@ class MainActivity : AppCompatActivity(), OnRefreshListener {
                         srl.finishLoadMore()
                     }
                 }
-
-
-
             }
         })
     }
