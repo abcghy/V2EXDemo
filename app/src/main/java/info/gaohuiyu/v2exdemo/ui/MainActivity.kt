@@ -13,18 +13,28 @@ import android.support.v7.app.AppCompatActivity
 import android.support.v7.util.DiffUtil
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.widget.TextView
+import android.widget.Toast
 import com.scwang.smartrefresh.layout.api.RefreshLayout
 import com.scwang.smartrefresh.layout.listener.OnRefreshListener
 import info.gaohuiyu.v2exdemo.R
+import info.gaohuiyu.v2exdemo.data.api.StringConverterFactory
 import info.gaohuiyu.v2exdemo.data.api.V2EXApi
+import info.gaohuiyu.v2exdemo.data.api.V2EXService
 import info.gaohuiyu.v2exdemo.data.db.AppDatabase
 import info.gaohuiyu.v2exdemo.data.model.Topic
 import info.gaohuiyu.v2exdemo.data.repository.TopicRepository
+import info.gaohuiyu.v2exdemo.domain.Status
 import info.gaohuiyu.v2exdemo.ui.detail.TopicDetailActivity
+import io.reactivex.android.schedulers.AndroidSchedulers
+import io.reactivex.disposables.Disposable
+import io.reactivex.schedulers.Schedulers
 import kotlinx.android.synthetic.main.activity_main.*
+import retrofit2.Retrofit
+import retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory
 
 fun Context.dp2px(dp: Float): Int = (resources.displayMetrics.density * dp + 0.5f).toInt()
 
@@ -68,6 +78,35 @@ class MainActivity : AppCompatActivity(), OnRefreshListener {
 
         initData()
         srl.autoRefresh()
+
+//        var retrofit = Retrofit.Builder()
+//            .baseUrl("https://www.v2ex.com/")
+//            .addConverterFactory(StringConverterFactory())
+//            .addCallAdapterFactory(RxJava2CallAdapterFactory.create())
+//            .build()
+
+//        val v2EXService = retrofit.create(V2EXService::class.java)
+//        v2EXService.getHotTopics()
+//            .subscribeOn(Schedulers.io())
+//            .observeOn(AndroidSchedulers.mainThread())
+//            .subscribe(object: io.reactivex.Observer<String> {
+//                override fun onComplete() {
+//
+//                }
+//
+//                override fun onSubscribe(d: Disposable) {
+//
+//                }
+//
+//                override fun onNext(t: String) {
+//                    Log.d("test", t)
+//                }
+//
+//                override fun onError(e: Throwable) {
+//                    e.printStackTrace()
+//                }
+//
+//            })
     }
 
     fun initData() {
@@ -81,10 +120,20 @@ class MainActivity : AppCompatActivity(), OnRefreshListener {
     private fun subscribeUI(viewModel: MainViewModel) {
         viewModel.topics.observe(this, Observer {
             if (it != null) {
-                mAdapter.setList(it)
-                srl.finishRefresh()
-                srl.finishLoadMore()
-            } else {
+                when (it.status) {
+                    Status.SUCCESS -> {
+                        mAdapter.setList(it.data!!)
+                        srl.finishRefresh()
+                        srl.finishLoadMore()
+                    }
+                    Status.ERROR -> {
+                        Toast.makeText(this@MainActivity, it.message, Toast.LENGTH_SHORT).show()
+                        srl.finishRefresh()
+                        srl.finishLoadMore()
+                    }
+                }
+
+
 
             }
         })

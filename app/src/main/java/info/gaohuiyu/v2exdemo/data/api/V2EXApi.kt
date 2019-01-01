@@ -9,18 +9,26 @@ import info.gaohuiyu.v2exdemo.AppExecutors
 import info.gaohuiyu.v2exdemo.data.model.*
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
+import java.lang.Exception
 
 class V2EXApi {
-    fun getHotTopics(): LiveData<List<Topic>> {
-        val topicListLiveData = MutableLiveData<List<Topic>>()
+    fun getHotTopics(): LiveData<ApiResponse<List<Topic>>> {
+        val topicListLiveData = MutableLiveData<ApiResponse<List<Topic>>>()
         AppExecutors.networkIO().execute {
             val url = "https://www.v2ex.com/?tab=hot"
             val request = ApiRequest(url)
-            val doc = Jsoup.connect(request.url).get()
+            var doc: Document
+            try {
+                doc = Jsoup.connect(request.url).get()
+            } catch (e: Exception) {
+                e.printStackTrace()
+                topicListLiveData.postValue(ApiResponse.create(e))
+                return@execute
+            }
 
             val cellItems = doc.select("#Main > div.box > div.cell.item")
 
-            val topics = MutableList(cellItems.size) {
+            val topics = List(cellItems.size) {
                 val tr = cellItems[it].select("tr")[0]
                 val memberA = tr.select("td:first-child > a")
 
@@ -70,12 +78,13 @@ class V2EXApi {
                 val nodeA = tr.select("a.node")
                 val node = Node(nodeA.html())
 
-                return@MutableList Topic(topicId, title, member, node, lastReplyTime, lastReplyMember, replyCount)
+                return@List Topic(topicId, title, member, node, lastReplyTime, lastReplyMember, replyCount)
             }
 
             logRequestAndResponse(request, topics)
 
-            topicListLiveData.postValue(topics)
+            val apiResponse = ApiResponse.create(topics)
+            topicListLiveData.postValue(apiResponse)
         }
         return topicListLiveData
     }
@@ -83,7 +92,14 @@ class V2EXApi {
     fun getTopicDetailResponse(topicId: Long): LiveData<ApiResponse<TopicDetailResponse>> {
         val topicDetailLiveData = MutableLiveData<ApiResponse<TopicDetailResponse>>()
         AppExecutors.networkIO().execute {
-            val topicDetailResponse = get(topicId, 1)
+            val topicDetailResponse: TopicDetailResponse?
+            try {
+                topicDetailResponse = get(topicId, 1)
+            } catch (e: Exception) {
+                e.printStackTrace()
+                topicDetailLiveData.postValue(ApiResponse.create(e))
+                return@execute
+            }
             topicDetailLiveData.postValue(ApiResponse.create(topicDetailResponse))
         }
         return topicDetailLiveData
@@ -92,7 +108,14 @@ class V2EXApi {
     fun getTopicComments(topicId: Long, @IntRange(from = 2, to = Long.MAX_VALUE) page: Int): LiveData<ApiResponse<CommentResponse>> {
         val topicDetailLiveData = MutableLiveData<ApiResponse<CommentResponse>>()
         AppExecutors.networkIO().execute {
-            val topicDetailResponse = get(topicId, page)
+            val topicDetailResponse: TopicDetailResponse?
+            try {
+                topicDetailResponse = get(topicId, page)
+            } catch (e: Exception) {
+                e.printStackTrace()
+                topicDetailLiveData.postValue(ApiResponse.create(e))
+                return@execute
+            }
             topicDetailLiveData.postValue(ApiResponse.create(topicDetailResponse?.commentResponse))
         }
         return topicDetailLiveData
@@ -101,7 +124,7 @@ class V2EXApi {
     private fun get(topicId: Long, page: Int = 1): TopicDetailResponse? {
         val url = "https://www.v2ex.com/t/$topicId?p=$page"
         val request = ApiRequest(url)
-        val doc = Jsoup.connect(request.url).get()
+        var doc = Jsoup.connect(request.url).get()
 
         if (doc.select(".topic_content").size == 0) {
             return null

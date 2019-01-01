@@ -64,6 +64,10 @@ data class TopicDetail(
 data class CommentHeader(val replyCount: String?, val filter: Boolean)
 data class CommentResponse(val comments: List<Comment>, val currentPage: Int, val totalPage: Int)
 
+//data class TopicListResponse(
+//    val topics: List<Topic>
+//)
+
 data class TopicDetailResponse(
     val topicDetail: TopicDetail,
     val subtitles: List<Subtitle>,

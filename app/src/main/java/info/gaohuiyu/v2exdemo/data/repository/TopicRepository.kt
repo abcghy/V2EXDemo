@@ -10,7 +10,7 @@ import info.gaohuiyu.v2exdemo.data.model.Topic
 import info.gaohuiyu.v2exdemo.data.model.TopicDetailResponse
 
 class TopicRepository(val v2EXApi: V2EXApi, val db: AppDatabase) {
-    fun getHotTopics(): LiveData<List<Topic>> {
+    fun getHotTopics(): LiveData<ApiResponse<List<Topic>>> {
         return v2EXApi.getHotTopics()
     }
 
