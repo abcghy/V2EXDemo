@@ -322,12 +322,22 @@ class HeaderViewHolder : RecyclerView.ViewHolder {
                     TopicDetailActivity.openActivity(itemView.context, topicId)
                     return
                 }
+                if (url.startsWith(memberSuffix)) {
+                    //
+                    Toast.makeText(itemView.context, "跳转到成员页面", Toast.LENGTH_SHORT).show()
+                    return
+                }
+                if (photoExtension.any {
+                            url.endsWith(it)
+                        }) {
+                    PhotoActivity.openActivity(itemView.context, url)
+                    return
+                }
                 val uri = Uri.parse(url)
                 itemView.context.startActivity(Intent(Intent.ACTION_VIEW, uri))
             }
 
             override fun onImageClick(url: String) {
-//                Toast.makeText(tvContent?.context, url, Toast.LENGTH_SHORT).show()
                 PhotoActivity.openActivity(itemView.context, url)
             }
         })
@@ -350,18 +360,49 @@ class HeaderViewHolder : RecyclerView.ViewHolder {
 class SubtitleViewHolder : RecyclerView.ViewHolder {
     private var tvOrder: TextView? = null
     private var tvDate: TextView? = null
-    private var tvContent: TextView? = null
+    private var tvContent: RichTextView? = null
 
     constructor(parent: ViewGroup) : super(LayoutInflater.from(parent.context).inflate(R.layout.item_topic_subtitle, parent, false)) {
         tvOrder = itemView.findViewById(R.id.tvOrder)
         tvDate = itemView.findViewById(R.id.tvDate)
         tvContent = itemView.findViewById(R.id.tvContent)
+
+        tvContent?.setOnRichTextClickListener(object : RichTextView.RichTextClickListener {
+            override fun onUrlClick(url: String) {
+                if (url.startsWith(baseUrl + pageSuffix)) {
+                    val topicId = getValueByRegex(url, "/t/(\\d*)").run {
+                        this.toLong()
+                    }
+                    TopicDetailActivity.openActivity(itemView.context, topicId)
+                    return
+                }
+                if (url.startsWith(memberSuffix)) {
+                    //
+                    Toast.makeText(itemView.context, "跳转到成员页面", Toast.LENGTH_SHORT).show()
+                    return
+                }
+                if (photoExtension.any {
+                            url.endsWith(it)
+                        }) {
+                    PhotoActivity.openActivity(itemView.context, url)
+                    return
+                }
+                val uri = Uri.parse(url)
+                itemView.context.startActivity(Intent(Intent.ACTION_VIEW, uri))
+            }
+
+            override fun onImageClick(url: String) {
+                PhotoActivity.openActivity(itemView.context, url)
+            }
+        })
     }
 
     fun bindTo(subtitle: Subtitle) {
         tvOrder?.text = "第${adapterPosition}条附言"
         tvDate?.text = subtitle.time
-        tvContent?.text = subtitle.content
+        tvContent?.setHtml(subtitle.content, itemView.context.let {
+            return@let it.resources.displayMetrics.widthPixels - it.dp2px(32f)
+        })
     }
 }
 
