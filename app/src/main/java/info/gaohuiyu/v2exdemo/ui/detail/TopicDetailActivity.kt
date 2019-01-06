@@ -15,6 +15,7 @@ import android.support.v7.app.AppCompatActivity
 import android.support.v7.util.DiffUtil
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.MenuItem
 import android.view.ViewGroup
@@ -31,13 +32,16 @@ import com.scwang.smartrefresh.layout.listener.OnRefreshListener
 import info.gaohuiyu.v2exdemo.R
 import info.gaohuiyu.v2exdemo.data.api.V2EXApi
 import info.gaohuiyu.v2exdemo.data.config.baseUrl
+import info.gaohuiyu.v2exdemo.data.config.memberSuffix
 import info.gaohuiyu.v2exdemo.data.config.pageSuffix
+import info.gaohuiyu.v2exdemo.data.config.photoExtension
 import info.gaohuiyu.v2exdemo.data.db.AppDatabase
 import info.gaohuiyu.v2exdemo.data.model.Comment
 import info.gaohuiyu.v2exdemo.data.model.CommentHeader
 import info.gaohuiyu.v2exdemo.data.model.Subtitle
 import info.gaohuiyu.v2exdemo.data.model.TopicDetail
 import info.gaohuiyu.v2exdemo.data.repository.TopicRepository
+import info.gaohuiyu.v2exdemo.ui.PhotoActivity
 import info.gaohuiyu.v2exdemo.ui.dp2px
 import info.gaohuiyu.v2exdemo.util.getValueByRegex
 import info.gaohuiyu.v2exdemo.widget.RichTextView
@@ -75,7 +79,8 @@ class TopicDetailActivity : AppCompatActivity(), OnRefreshListener, OnLoadMoreLi
         srl.setOnRefreshListener(this)
         srl.setOnLoadMoreListener(this)
 
-        val topicId = intent.getLongExtra("topicId", -1).apply {
+        val topicId =
+            intent.getLongExtra("topicId", -1).apply {
             if (this == -1L) {
                 finish()
                 return
@@ -111,7 +116,10 @@ class TopicDetailActivity : AppCompatActivity(), OnRefreshListener, OnLoadMoreLi
                 srl.finishLoadMore()
 
                 itemDecoration.subtitleCount = getSubtitleCount(it)
+                Log.d("test", "it.data: ${it}")
                 mAdapter.setData(it)
+            } else {
+                Toast.makeText(this@TopicDetailActivity, "Empty", Toast.LENGTH_SHORT).show()
             }
         })
 
@@ -205,29 +213,31 @@ class TopicDetailAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
             notifyItemRangeInserted(0, datas?.size!!)
         } else {
             val newDatas = list
-            val diffResult = DiffUtil.calculateDiff(object: DiffUtil.Callback() {
-                override fun getOldListSize(): Int {
-                    return this@TopicDetailAdapter.datas!!.size
-                }
-
-                override fun getNewListSize(): Int {
-                    return newDatas.size
-                }
-
-                override fun areItemsTheSame(oldPosition: Int, newPosition: Int): Boolean {
-                    val oldItem = datas?.get(oldPosition)
-                    val newItem = newDatas[newPosition]
-                    return oldItem == newItem
-                }
-
-                override fun areContentsTheSame(oldPosition: Int, newPosition: Int): Boolean {
-                    val oldItem = datas?.get(oldPosition)
-                    val newItem = newDatas[newPosition]
-                    return oldItem == newItem
-                }
-            })
+//            Log.d("test", "oldCount: ${datas?.size}, newCount: ${newDatas.size}")
+//            val diffResult = DiffUtil.calculateDiff(object: DiffUtil.Callback() {
+//                override fun getOldListSize(): Int {
+//                    return this@TopicDetailAdapter.datas!!.size
+//                }
+//
+//                override fun getNewListSize(): Int {
+//                    return newDatas.size
+//                }
+//
+//                override fun areItemsTheSame(oldPosition: Int, newPosition: Int): Boolean {
+//                    val oldItem = datas?.get(oldPosition)
+//                    val newItem = newDatas[newPosition]
+//                    return oldItem == newItem
+//                }
+//
+//                override fun areContentsTheSame(oldPosition: Int, newPosition: Int): Boolean {
+//                    val oldItem = datas?.get(oldPosition)
+//                    val newItem = newDatas[newPosition]
+//                    return oldItem == newItem
+//                }
+//            })
             datas = newDatas
-            diffResult.dispatchUpdatesTo(this)
+            notifyDataSetChanged()
+//            diffResult.dispatchUpdatesTo(this)
         }
     }
 
@@ -317,7 +327,8 @@ class HeaderViewHolder : RecyclerView.ViewHolder {
             }
 
             override fun onImageClick(url: String) {
-                Toast.makeText(tvContent?.context, url, Toast.LENGTH_SHORT).show()
+//                Toast.makeText(tvContent?.context, url, Toast.LENGTH_SHORT).show()
+                PhotoActivity.openActivity(itemView.context, url)
             }
         })
     }
@@ -325,9 +336,11 @@ class HeaderViewHolder : RecyclerView.ViewHolder {
     fun bindTo(topicDetail: TopicDetail) {
         tvNode?.text = topicDetail.node
         tvTitle?.text = topicDetail.title
-        tvContent?.setHtml(topicDetail.content, itemView.context.let {
-            return@let it.resources.displayMetrics.widthPixels - it.dp2px(32f)
-        })
+        topicDetail.content?.apply {
+            tvContent?.setHtml(this, itemView.context.let {
+                return@let it.resources.displayMetrics.widthPixels - it.dp2px(32f)
+            })
+        }
         tvPublisherName?.text = topicDetail.publisher?.name
         tvPublishTime?.text = topicDetail.publishTime
         tvClickCount?.text = topicDetail.clickCount
@@ -392,12 +405,23 @@ class CommentViewHolder : RecyclerView.ViewHolder {
                     TopicDetailActivity.openActivity(itemView.context, topicId)
                     return
                 }
+                if (url.startsWith(memberSuffix)) {
+                    //
+                    Toast.makeText(itemView.context, "跳转到成员页面", Toast.LENGTH_SHORT).show()
+                    return
+                }
+                if (photoExtension.any {
+                            url.endsWith(it)
+                        }) {
+                    PhotoActivity.openActivity(itemView.context, url)
+                    return
+                }
                 val uri = Uri.parse(url)
                 itemView.context.startActivity(Intent(Intent.ACTION_VIEW, uri))
             }
 
             override fun onImageClick(url: String) {
-                Toast.makeText(tvContent?.context, url, Toast.LENGTH_SHORT).show()
+                PhotoActivity.openActivity(itemView.context, url)
             }
         })
     }

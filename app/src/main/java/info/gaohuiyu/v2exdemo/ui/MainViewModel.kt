@@ -6,7 +6,6 @@ import android.arch.lifecycle.ViewModel
 import info.gaohuiyu.v2exdemo.AppExecutors
 import info.gaohuiyu.v2exdemo.data.api.ApiErrorResponse
 import info.gaohuiyu.v2exdemo.data.api.ApiSuccessResponse
-import info.gaohuiyu.v2exdemo.data.db.AppDatabase
 import info.gaohuiyu.v2exdemo.data.model.Topic
 import info.gaohuiyu.v2exdemo.data.repository.TopicRepository
 import info.gaohuiyu.v2exdemo.domain.Resource
@@ -35,7 +34,7 @@ class MainViewModel(val topicRepository: TopicRepository): ViewModel() {
                     _topics.value = Resource.success(it.body)
 
                     AppExecutors.diskIO().submit {
-                        topicRepository.saveTopics(it.body)
+                        topicRepository.setMainTopics(it.body)
                     }
                 }
                 is ApiErrorResponse -> {

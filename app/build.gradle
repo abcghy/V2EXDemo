@@ -94,4 +94,7 @@ dependencies {
 //
 //    // Test helpers
 //    testImplementation "android.arch.persistence.room:testing:$room_version"
+
+    // https://github.com/chrisbanes/PhotoView
+    implementation 'com.github.chrisbanes:PhotoView:2.1.4'
 }

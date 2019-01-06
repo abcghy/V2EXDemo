@@ -7,6 +7,7 @@
     <!--<color name="textColorPrimary">@color/TextMain</color>-->
     <!--<color name="textColorSecondary">@color/TextMain</color>-->
 
+
     <color name="TextMain">#778087</color>
     <color name="TextGrey">#b5b5b5</color>
     <color name="white">#FFFFFF</color>
@@ -15,5 +16,7 @@
     <color name="TextBlack">#333344</color>
     <color name="Lina">#FAFAFA</color>
     <color name="Line">#f0f0f0</color>
+
+    <color name="PhotoBg">#333333</color>
 
 </resources>

@@ -20,7 +20,7 @@ class V2EXApi {
             var doc: Document
             try {
                 doc = Jsoup.connect(request.url).get()
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 e.printStackTrace()
                 topicListLiveData.postValue(ApiResponse.create(e))
                 return@execute
@@ -52,7 +52,9 @@ class V2EXApi {
                         null
                     }
                 }
-                val lastReplyMember = Member(lastReplyName!!, null)
+                val lastReplyMember = lastReplyName?.run {
+                    Member(lastReplyName, null)
+                }
 
                 val replyCount = tr.select("a.count_livid").text().run {
                     if (this.isNullOrEmpty()) {
@@ -66,8 +68,8 @@ class V2EXApi {
                 val topicId = Regex("/t/(\\d*)")
                         .find(titleA.attr("href"))?.groups?.get(1)?.value!!
                         .run {
-                    this.toLong()
-                }
+                            this.toLong()
+                        }
 
                 val member: Member = memberA.let {
                     val memberName = it.attr("href").replace("/member/", "").trim()
@@ -126,7 +128,7 @@ class V2EXApi {
         val request = ApiRequest(url)
         var doc = Jsoup.connect(request.url).get()
 
-        if (doc.select(".topic_content").size == 0) {
+        if (doc.select("#Main > .box > .header > h1").size == 0) {
             return null
         }
 
@@ -155,16 +157,16 @@ class V2EXApi {
         var publishTime: String? = null
         var clickCount: String? = null
         doc.select("#Main > div:nth-child(2) > div.header > small")[0].ownText().split("·")
-            .apply {
-                this.map { it.trim() }
-                    .filter { it.isNotEmpty() }
-                    .forEachIndexed { index, s ->
-                        when (index) {
-                            0 -> publishTime = s
-                            1 -> clickCount = s
-                        }
-                    }
-            }
+                .apply {
+                    this.map { it.trim() }
+                            .filter { it.isNotEmpty() }
+                            .forEachIndexed { index, s ->
+                                when (index) {
+                                    0 -> publishTime = s
+                                    1 -> clickCount = s
+                                }
+                            }
+                }
         val content = doc.select("#Main > div:nth-child(2) > div.cell > div.topic_content").run {
             return@run if (this.size > 0) {
                 this[0].html()
@@ -175,17 +177,21 @@ class V2EXApi {
 
         var replyCount: String? = null
         var lastReplyTime: String? = null
-        doc.select("#Main > div:nth-child(4) > div:nth-child(1) > span")[0].text()
-            .apply {
-                split("|")
-                    .map { it.trim() }
-                    .mapIndexed { index, s ->
-                        when (index) {
-                            0 -> replyCount = s.replace("回复", "").trim()
-                            1 -> lastReplyTime = s
+        doc.select("#Main > div:nth-child(4) > div:nth-child(1) > span").apply {
+            if (this.size == 0) {
+                replyCount = "0"
+//                lastReplyTime = s
+            } else {
+                this[0].text().split("|")
+                        .map { it.trim() }
+                        .mapIndexed { index, s ->
+                            when (index) {
+                                0 -> replyCount = s.replace("回复", "").trim()
+                                1 -> lastReplyTime = s
+                            }
                         }
-                    }
             }
+        }
 
         return TopicDetail(title, content, lastReplyTime, replyCount, node, publisher, publishTime, clickCount)
     }
@@ -197,7 +203,7 @@ class V2EXApi {
                 this.forEach {
                     val subtitleContent = it.select(".topic_content")[0].html()
                     val subtitleTime = it.select("span")[0].text()
-                        .split("·")[1].trim()
+                            .split("·")[1].trim()
 
                     subtitles.add(Subtitle(subtitleContent, subtitleTime))
                 }

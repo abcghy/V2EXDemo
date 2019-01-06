@@ -15,6 +15,7 @@ import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
 import android.util.Log
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import android.widget.Toast
@@ -78,35 +79,6 @@ class MainActivity : AppCompatActivity(), OnRefreshListener {
 
         initData()
         srl.autoRefresh()
-
-//        var retrofit = Retrofit.Builder()
-//            .baseUrl("https://www.v2ex.com/")
-//            .addConverterFactory(StringConverterFactory())
-//            .addCallAdapterFactory(RxJava2CallAdapterFactory.create())
-//            .build()
-
-//        val v2EXService = retrofit.create(V2EXService::class.java)
-//        v2EXService.getHotTopics()
-//            .subscribeOn(Schedulers.io())
-//            .observeOn(AndroidSchedulers.mainThread())
-//            .subscribe(object: io.reactivex.Observer<String> {
-//                override fun onComplete() {
-//
-//                }
-//
-//                override fun onSubscribe(d: Disposable) {
-//
-//                }
-//
-//                override fun onNext(t: String) {
-//                    Log.d("test", t)
-//                }
-//
-//                override fun onError(e: Throwable) {
-//                    e.printStackTrace()
-//                }
-//
-//            })
     }
 
     fun initData() {
@@ -122,6 +94,7 @@ class MainActivity : AppCompatActivity(), OnRefreshListener {
             if (it != null) {
                 when (it.status) {
                     Status.SUCCESS -> {
+                        Log.d("test", "it.data: ${it.data.hashCode()}")
                         mAdapter.setList(it.data!!)
                         srl.finishRefresh()
                         srl.finishLoadMore()
@@ -238,7 +211,14 @@ class MainViewHolder : RecyclerView.ViewHolder {
         tvTitle?.text = topic.title
         tvTime?.text = topic.lastReplyTime
         tvPublisherName?.text = topic.publisher?.name
-        tvCommentCount?.text = topic.replyCount.toString()
+        topic.replyCount.apply {
+            if (this == 0) {
+                tvCommentCount?.visibility = View.GONE
+            } else {
+                tvCommentCount?.visibility = View.VISIBLE
+                tvCommentCount?.text = topic.replyCount.toString()
+            }
+        }
         tvNodeName?.text = topic.node?.name
     }
 }

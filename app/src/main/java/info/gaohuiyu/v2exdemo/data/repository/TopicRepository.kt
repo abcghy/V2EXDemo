@@ -27,7 +27,8 @@ class TopicRepository(val v2EXApi: V2EXApi, val db: AppDatabase) {
         return v2EXApi.getTopicComments(topicId, page)
     }
 
-    fun saveTopics(topics: List<Topic>) {
+    fun setMainTopics(topics: List<Topic>) {
+        db.topicDao().deleteAllTopic()
         db.topicDao().insertAllByNode(topics)
     }
 }
