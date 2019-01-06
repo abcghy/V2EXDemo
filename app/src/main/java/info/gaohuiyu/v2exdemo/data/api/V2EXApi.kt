@@ -12,10 +12,10 @@ import org.jsoup.nodes.Document
 import java.lang.Exception
 
 class V2EXApi {
-    fun getHotTopics(): LiveData<ApiResponse<List<Topic>>> {
+    fun getTopicsByTab(tab: Tab): LiveData<ApiResponse<List<Topic>>> {
         val topicListLiveData = MutableLiveData<ApiResponse<List<Topic>>>()
         AppExecutors.networkIO().execute {
-            val url = "https://www.v2ex.com/?tab=hot"
+            val url = "https://www.v2ex.com/?tab=${tab.suffix}"
             val request = ApiRequest(url)
             var doc: Document
             try {
@@ -80,7 +80,7 @@ class V2EXApi {
                 val nodeA = tr.select("a.node")
                 val node = Node(nodeA.html())
 
-                return@List Topic(topicId, title, member, node, lastReplyTime, lastReplyMember, replyCount)
+                return@List Topic(topicId, title, member, node, lastReplyTime, lastReplyMember, replyCount, it)
             }
 
             logRequestAndResponse(request, topics)

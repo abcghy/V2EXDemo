@@ -12,12 +12,12 @@ import android.graphics.Paint
 import android.net.Uri
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
-import android.support.v7.util.DiffUtil
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.MenuItem
+import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
@@ -41,7 +41,6 @@ import info.gaohuiyu.v2exdemo.data.model.CommentHeader
 import info.gaohuiyu.v2exdemo.data.model.Subtitle
 import info.gaohuiyu.v2exdemo.data.model.TopicDetail
 import info.gaohuiyu.v2exdemo.data.repository.TopicRepository
-import info.gaohuiyu.v2exdemo.ui.PhotoActivity
 import info.gaohuiyu.v2exdemo.ui.dp2px
 import info.gaohuiyu.v2exdemo.util.getValueByRegex
 import info.gaohuiyu.v2exdemo.widget.RichTextView
@@ -64,11 +63,17 @@ class TopicDetailActivity : AppCompatActivity(), OnRefreshListener, OnLoadMoreLi
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_topic_detail)
 
+        setSupportActionBar(toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         supportActionBar?.title = ""
         supportActionBar?.elevation = 0f
 
-        mAdapter = TopicDetailAdapter()
+        mAdapter = TopicDetailAdapter(object: OnPhotoShowListener {
+            override fun onShow(url: String) {
+                pv.show(url)
+            }
+
+        })
         rv.adapter = mAdapter
 
         itemDecoration = TopicDetailItemDecoration(this)
@@ -80,16 +85,17 @@ class TopicDetailActivity : AppCompatActivity(), OnRefreshListener, OnLoadMoreLi
         srl.setOnLoadMoreListener(this)
 
         val topicId =
-            intent.getLongExtra("topicId", -1).apply {
-            if (this == -1L) {
-                finish()
-                return
-            }
-        }
-        mViewModel = ViewModelProviders.of(this, object: ViewModelProvider.Factory {
+                intent.getLongExtra("topicId", -1).apply {
+                    if (this == -1L) {
+                        finish()
+                        return
+                    }
+                }
+        mViewModel = ViewModelProviders.of(this, object : ViewModelProvider.Factory {
             override fun <T : ViewModel?> create(modelClass: Class<T>): T {
                 val db = Room.databaseBuilder(this@TopicDetailActivity, AppDatabase::class.java, "V2ex.db")
-                    .build()
+                        .fallbackToDestructiveMigration()
+                        .build()
                 return TopicViewModel(TopicRepository(V2EXApi(), db), topicId) as T
             }
 
@@ -113,7 +119,7 @@ class TopicDetailActivity : AppCompatActivity(), OnRefreshListener, OnLoadMoreLi
 
             if (it != null) {
                 srl.finishRefresh()
-                srl.finishLoadMore()
+//                srl.finishLoadMore()
 
                 itemDecoration.subtitleCount = getSubtitleCount(it)
                 Log.d("test", "it.data: ${it}")
@@ -125,7 +131,12 @@ class TopicDetailActivity : AppCompatActivity(), OnRefreshListener, OnLoadMoreLi
 
         viewModel.isMore.observe(this, Observer {
             if (it != null) {
-                srl.setEnableLoadMore(it)
+//                srl.setEnableLoadMore(it)
+                if (it) {
+                    srl.finishLoadMore()
+                } else {
+                    srl.finishLoadMoreWithNoMoreData()
+                }
             }
         })
     }
@@ -144,9 +155,21 @@ class TopicDetailActivity : AppCompatActivity(), OnRefreshListener, OnLoadMoreLi
         }
         return super.onOptionsItemSelected(item)
     }
+
+    override fun onBackPressed() {
+        if (pv.visibility == View.VISIBLE) {
+            pv.hide()
+        } else {
+            super.onBackPressed()
+        }
+    }
 }
 
-class TopicDetailItemDecoration: RecyclerView.ItemDecoration {
+interface OnPhotoShowListener {
+    fun onShow(url: String)
+}
+
+class TopicDetailItemDecoration : RecyclerView.ItemDecoration {
     val dividerPaint: Paint
     val commentPaint: Paint
     var subtitleCount: Int
@@ -184,19 +207,25 @@ class TopicDetailItemDecoration: RecyclerView.ItemDecoration {
                 position == subtitleCount + 1 -> {
                     val bottom = child.bottom
                     c.drawLine(parent.context.dp2px(16f).toFloat(), bottom.toFloat(),
-                        parent.width.toFloat(), bottom.toFloat(), commentPaint)
+                            parent.width.toFloat(), bottom.toFloat(), commentPaint)
                 }
                 else -> {
                     val bottom = child.bottom
                     c.drawLine(parent.context.dp2px(68f).toFloat(), bottom.toFloat(),
-                        parent.width.toFloat(), bottom.toFloat(), commentPaint)
+                            parent.width.toFloat(), bottom.toFloat(), commentPaint)
                 }
             }
         }
     }
 }
 
-class TopicDetailAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+class TopicDetailAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder> {
+
+    val onPhotoShowListener: OnPhotoShowListener
+
+    constructor(onPhotoShowListener: OnPhotoShowListener) : super() {
+        this.onPhotoShowListener = onPhotoShowListener
+    }
 
     companion object {
         val HEADER = 0
@@ -244,19 +273,19 @@ class TopicDetailAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
         return when (viewType) {
             HEADER -> {
-                HeaderViewHolder(parent)
+                HeaderViewHolder(parent, onPhotoShowListener)
             }
             SUBTITLE -> {
-                SubtitleViewHolder(parent)
+                SubtitleViewHolder(parent, onPhotoShowListener)
             }
             COMMENT_HEADER -> {
                 CommentHeaderViewHolder(parent)
             }
             COMMENT -> {
-                CommentViewHolder(parent)
+                CommentViewHolder(parent, onPhotoShowListener)
             }
             else -> {
-                HeaderViewHolder(parent)
+                HeaderViewHolder(parent, onPhotoShowListener)
             }
         }
     }
@@ -302,9 +331,9 @@ class HeaderViewHolder : RecyclerView.ViewHolder {
     private var tvPublishTime: TextView? = null
     private var tvClickCount: TextView? = null
 
-    constructor(parent: ViewGroup) : super(
-        LayoutInflater.from(parent.context)
-            .inflate(R.layout.item_topic_detail_header, parent, false)
+    constructor(parent: ViewGroup, onPhotoShowListener: OnPhotoShowListener) : super(
+            LayoutInflater.from(parent.context)
+                    .inflate(R.layout.item_topic_detail_header, parent, false)
     ) {
         tvNode = itemView.findViewById(R.id.tvNode)
         tvTitle = itemView.findViewById(R.id.tvTitle)
@@ -315,7 +344,7 @@ class HeaderViewHolder : RecyclerView.ViewHolder {
 
         tvContent?.setOnRichTextClickListener(object : RichTextView.RichTextClickListener {
             override fun onUrlClick(url: String) {
-                if (url.startsWith(baseUrl + pageSuffix)) {
+                if (url.startsWith(baseUrl + pageSuffix) or url.startsWith(pageSuffix)) {
                     val topicId = getValueByRegex(url, "/t/(\\d*)").run {
                         this.toLong()
                     }
@@ -330,7 +359,7 @@ class HeaderViewHolder : RecyclerView.ViewHolder {
                 if (photoExtension.any {
                             url.endsWith(it)
                         }) {
-                    PhotoActivity.openActivity(itemView.context, url)
+                    onPhotoShowListener.onShow(url)
                     return
                 }
                 val uri = Uri.parse(url)
@@ -338,7 +367,7 @@ class HeaderViewHolder : RecyclerView.ViewHolder {
             }
 
             override fun onImageClick(url: String) {
-                PhotoActivity.openActivity(itemView.context, url)
+                onPhotoShowListener.onShow(url)
             }
         })
     }
@@ -362,14 +391,15 @@ class SubtitleViewHolder : RecyclerView.ViewHolder {
     private var tvDate: TextView? = null
     private var tvContent: RichTextView? = null
 
-    constructor(parent: ViewGroup) : super(LayoutInflater.from(parent.context).inflate(R.layout.item_topic_subtitle, parent, false)) {
+    constructor(parent: ViewGroup, onPhotoShowListener: OnPhotoShowListener)
+            : super(LayoutInflater.from(parent.context).inflate(R.layout.item_topic_subtitle, parent, false)) {
         tvOrder = itemView.findViewById(R.id.tvOrder)
         tvDate = itemView.findViewById(R.id.tvDate)
         tvContent = itemView.findViewById(R.id.tvContent)
 
         tvContent?.setOnRichTextClickListener(object : RichTextView.RichTextClickListener {
             override fun onUrlClick(url: String) {
-                if (url.startsWith(baseUrl + pageSuffix)) {
+                if (url.startsWith(baseUrl + pageSuffix) or url.startsWith(pageSuffix)) {
                     val topicId = getValueByRegex(url, "/t/(\\d*)").run {
                         this.toLong()
                     }
@@ -384,7 +414,7 @@ class SubtitleViewHolder : RecyclerView.ViewHolder {
                 if (photoExtension.any {
                             url.endsWith(it)
                         }) {
-                    PhotoActivity.openActivity(itemView.context, url)
+                    onPhotoShowListener.onShow(url)
                     return
                 }
                 val uri = Uri.parse(url)
@@ -392,7 +422,7 @@ class SubtitleViewHolder : RecyclerView.ViewHolder {
             }
 
             override fun onImageClick(url: String) {
-                PhotoActivity.openActivity(itemView.context, url)
+                onPhotoShowListener.onShow(url)
             }
         })
     }
@@ -406,7 +436,7 @@ class SubtitleViewHolder : RecyclerView.ViewHolder {
     }
 }
 
-class CommentHeaderViewHolder: RecyclerView.ViewHolder {
+class CommentHeaderViewHolder : RecyclerView.ViewHolder {
     private var tvCommentCount: TextView? = null
     private var ivSort: ImageView? = null
 
@@ -428,7 +458,7 @@ class CommentViewHolder : RecyclerView.ViewHolder {
     private var tvDate: TextView? = null
     private var tvContent: RichTextView? = null
 
-    constructor(parent: ViewGroup) : super(LayoutInflater.from(parent.context)
+    constructor(parent: ViewGroup, onPhotoShowListener: OnPhotoShowListener) : super(LayoutInflater.from(parent.context)
             .inflate(R.layout.item_topic_comment, parent, false)) {
         ivAvatar = itemView.findViewById(R.id.ivAvatar)
         tvName = itemView.findViewById(R.id.tvName)
@@ -439,7 +469,7 @@ class CommentViewHolder : RecyclerView.ViewHolder {
 
         tvContent?.setOnRichTextClickListener(object : RichTextView.RichTextClickListener {
             override fun onUrlClick(url: String) {
-                if (url.startsWith(baseUrl + pageSuffix)) {
+                if (url.startsWith(baseUrl + pageSuffix) or url.startsWith(pageSuffix)) {
                     val topicId = getValueByRegex(url, "/t/(\\d*)").run {
                         this.toLong()
                     }
@@ -454,7 +484,7 @@ class CommentViewHolder : RecyclerView.ViewHolder {
                 if (photoExtension.any {
                             url.endsWith(it)
                         }) {
-                    PhotoActivity.openActivity(itemView.context, url)
+                    onPhotoShowListener.onShow(url)
                     return
                 }
                 val uri = Uri.parse(url)
@@ -462,16 +492,16 @@ class CommentViewHolder : RecyclerView.ViewHolder {
             }
 
             override fun onImageClick(url: String) {
-                PhotoActivity.openActivity(itemView.context, url)
+                onPhotoShowListener.onShow(url)
             }
         })
     }
 
     fun bindTo(comment: Comment) {
         Glide.with(itemView.context)
-            .load(comment.commenter.avatar)
-            .apply(RequestOptions().transforms(CenterCrop(), RoundedCorners(itemView.context.dp2px(4f))))
-            .into(ivAvatar!!)
+                .load(comment.commenter.avatar)
+                .apply(RequestOptions().transforms(CenterCrop(), RoundedCorners(itemView.context.dp2px(4f))))
+                .into(ivAvatar!!)
         tvOrder?.text = comment.order
         tvName?.text = comment.commenter.name
         tvContent?.setHtml(comment.content, itemView.context.let {

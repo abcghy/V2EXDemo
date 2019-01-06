@@ -22,20 +22,14 @@ import android.widget.Toast
 import com.scwang.smartrefresh.layout.api.RefreshLayout
 import com.scwang.smartrefresh.layout.listener.OnRefreshListener
 import info.gaohuiyu.v2exdemo.R
-import info.gaohuiyu.v2exdemo.data.api.StringConverterFactory
 import info.gaohuiyu.v2exdemo.data.api.V2EXApi
-import info.gaohuiyu.v2exdemo.data.api.V2EXService
 import info.gaohuiyu.v2exdemo.data.db.AppDatabase
 import info.gaohuiyu.v2exdemo.data.model.Topic
 import info.gaohuiyu.v2exdemo.data.repository.TopicRepository
 import info.gaohuiyu.v2exdemo.domain.Status
 import info.gaohuiyu.v2exdemo.ui.detail.TopicDetailActivity
-import io.reactivex.android.schedulers.AndroidSchedulers
-import io.reactivex.disposables.Disposable
-import io.reactivex.schedulers.Schedulers
+import info.gaohuiyu.v2exdemo.widget.OnSelectedListener
 import kotlinx.android.synthetic.main.activity_main.*
-import retrofit2.Retrofit
-import retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory
 
 fun Context.dp2px(dp: Float): Int = (resources.displayMetrics.density * dp + 0.5f).toInt()
 
@@ -49,7 +43,12 @@ class MainActivity : AppCompatActivity(), OnRefreshListener {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        supportActionBar?.title = "热门"
+        setSupportActionBar(toolbar)
+        supportActionBar?.title = ""
+
+        toolbar.setOnClickListener {
+            ddvTag.toggle()
+        }
 
         mAdapter = MainAdapter(object : OnSelectListener {
             override fun onSelect(topic: Topic?) {
@@ -67,7 +66,8 @@ class MainActivity : AppCompatActivity(), OnRefreshListener {
         mViewModel = ViewModelProviders.of(this, object : ViewModelProvider.Factory {
             override fun <T : ViewModel?> create(modelClass: Class<T>): T {
                 val db = Room.databaseBuilder(this@MainActivity, AppDatabase::class.java, "V2ex.db")
-                    .build()
+                        .fallbackToDestructiveMigration()
+                        .build()
                 return MainViewModel(TopicRepository(V2EXApi(), db)) as T
             }
         }).get(MainViewModel::class.java)
@@ -78,11 +78,20 @@ class MainActivity : AppCompatActivity(), OnRefreshListener {
         subscribeUI(mViewModel)
 
         initData()
+        setListener()
         srl.autoRefresh()
     }
 
     fun initData() {
-        mViewModel.getLastData()
+        ddvTag.setDatas(mViewModel.tabs)
+    }
+
+    fun setListener() {
+        ddvTag.setOnSelectListener(object : OnSelectedListener {
+            override fun onSelected(pos: Int) {
+                mViewModel.selectTag(pos)
+            }
+        })
     }
 
     override fun onRefresh(refreshLayout: RefreshLayout) {
@@ -107,6 +116,12 @@ class MainActivity : AppCompatActivity(), OnRefreshListener {
                 }
             }
         })
+
+        viewModel.currentTab.observe(this, Observer {
+            if (it != null) {
+                supportActionBar?.title = it.name
+            }
+        })
     }
 
     private fun fetchData() {
@@ -114,7 +129,7 @@ class MainActivity : AppCompatActivity(), OnRefreshListener {
     }
 }
 
-class LinearItemDecoration: RecyclerView.ItemDecoration {
+class LinearItemDecoration : RecyclerView.ItemDecoration {
     val dividerPaint: Paint
 
     constructor(context: Context) : super() {

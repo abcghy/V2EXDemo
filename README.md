@@ -5,11 +5,11 @@
 - Practice my Android architecture skill.
 
 ## ScreenShot
-- ![MainActivity](screenshot/ScreenShot_Main.png)
+![MainActivity](screenshot/ScreenShot_Main.png)
 
 ## TODO
 - [ ] Thanks count for topic detail.
-- [ ] More threads other than hot thread.
+- [X] More tab other than hot thread.
 - [ ] Optimize user experience.
 - [ ] Login
 - [ ] Reply

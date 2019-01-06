@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@drawable/rounded_tag_bg" android:state_checked="false" />
+
+    <item android:state_checked="true">
+        <shape android:shape="rectangle">
+            <corners android:radius="999dp" />
+            <solid android:color="@color/white" />
+            <stroke android:width="1dp" android:color="@color/colorAccent" />
+        </shape>
+    </item>
+</selector>

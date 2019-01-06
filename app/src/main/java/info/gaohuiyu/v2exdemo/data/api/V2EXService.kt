@@ -11,5 +11,5 @@ interface V2EXService {
     fun getNode(): Observable<List<Node>>
 
     @GET("/")
-    fun getHotTopics(@Query("tab") tab: String = "hot"): Observable<String>
+    fun getHotTopics(@Query("currentTab") tab: String = "hot"): Observable<String>
 }

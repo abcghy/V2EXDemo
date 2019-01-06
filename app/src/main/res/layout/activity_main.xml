@@ -1,38 +1,62 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:orientation="vertical"
     tools:context=".ui.MainActivity">
 
-    <com.scwang.smartrefresh.layout.SmartRefreshLayout
-        android:id="@+id/srl"
+    <android.support.v7.widget.Toolbar
+        android:id="@+id/toolbar"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="wrap_content"
+        android:background="@color/white">
 
-        <com.scwang.smartrefresh.layout.header.ClassicsHeader
+    </android.support.v7.widget.Toolbar>
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        tools:context=".ui.MainActivity">
+
+        <com.scwang.smartrefresh.layout.SmartRefreshLayout
+            android:id="@+id/srl"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            app:srlEnableLastTime="false"
-            app:srlAccentColor="@color/TextGrey"
-            app:srlPrimaryColor="@color/Lina"
-            app:srlTextSizeTitle="12sp"
-            app:srlDrawableArrow="@drawable/ic_arrow_refresh_down"
-            app:srlDrawableSize="8dp"
-            app:srlDrawableMarginRight="8dp">
+            android:layout_height="match_parent">
 
-        </com.scwang.smartrefresh.layout.header.ClassicsHeader>
+            <com.scwang.smartrefresh.layout.header.ClassicsHeader
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:srlAccentColor="@color/TextGrey"
+                app:srlDrawableArrow="@drawable/ic_arrow_refresh_down"
+                app:srlDrawableMarginRight="8dp"
+                app:srlDrawableSize="8dp"
+                app:srlEnableLastTime="false"
+                app:srlPrimaryColor="@color/Lina"
+                app:srlTextSizeTitle="12sp">
 
-        <android.support.v7.widget.RecyclerView
-            android:id="@+id/rv"
+            </com.scwang.smartrefresh.layout.header.ClassicsHeader>
+
+            <android.support.v7.widget.RecyclerView
+                android:id="@+id/rv"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@color/white"
+                tools:listitem="@layout/item_main">
+
+            </android.support.v7.widget.RecyclerView>
+
+        </com.scwang.smartrefresh.layout.SmartRefreshLayout>
+
+        <info.gaohuiyu.v2exdemo.widget.DropDownView
+            android:id="@+id/ddvTag"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            tools:listitem="@layout/item_main"
-            android:background="@color/white">
+            android:visibility="gone">
 
-        </android.support.v7.widget.RecyclerView>
+        </info.gaohuiyu.v2exdemo.widget.DropDownView>
 
-    </com.scwang.smartrefresh.layout.SmartRefreshLayout>
+    </FrameLayout>
 
 </LinearLayout>

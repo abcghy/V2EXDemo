@@ -35,7 +35,8 @@ data class Topic(
     val lastReplyTime: String?,
     @Embedded(prefix = "lastReplyMember_")
     val lastReplyMember: Member?,
-    val replyCount: Int
+    val replyCount: Int,
+    val order: Int
 )
 
 @Entity
@@ -80,5 +81,21 @@ data class TopicDetailResponse(
         list.add(CommentHeader(topicDetail.replyCount, true))
         list.addAll(commentResponse.comments)
         return list
+    }
+}
+
+data class Tab(val name: String, val suffix: String)
+
+data class CheckedWrapper<T>(var isChecked: Boolean, val data: T) {
+    companion object {
+        fun <T> transform(data: T): CheckedWrapper<T> {
+            return CheckedWrapper(false, data)
+        }
+
+        fun <T> transform(datas: List<T>): List<CheckedWrapper<T>> {
+            return datas.map {
+                transform(it)
+            }
+        }
     }
 }

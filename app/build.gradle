@@ -15,6 +15,9 @@ android {
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+
+        renderscriptTargetApi 19
+        renderscriptSupportModeEnabled true    // Enable RS support
     }
     buildTypes {
         release {
@@ -97,4 +100,16 @@ dependencies {
 
     // https://github.com/chrisbanes/PhotoView
     implementation 'com.github.chrisbanes:PhotoView:2.1.4'
+
+    // https://github.com/mmin18/RealtimeBlurView
+    implementation 'com.github.mmin18:realtimeblurview:1.1.2'
+
+    // https://github.com/hongyangAndroid/FlowLayout
+    implementation 'com.hyman:flowlayout-lib:1.1.2'
+
+    // https://github.com/Blankj/AndroidUtilCode/blob/master/utilcode/README-CN.md
+    implementation 'com.blankj:utilcode:1.22.10'
+
+    // https://github.com/google/flexbox-layout
+    implementation 'com.google.android:flexbox:1.0.0'
 }
