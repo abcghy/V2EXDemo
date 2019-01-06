@@ -5,7 +5,7 @@
 - Practice my Android architecture skill.
 
 ## ScreenShot
-- [MainActivity](screenshot/ScreenShot_Main.png)
+- ![MainActivity](screenshot/ScreenShot_Main.png)
 
 ## TODO
 - [ ] Thanks count for topic detail.
